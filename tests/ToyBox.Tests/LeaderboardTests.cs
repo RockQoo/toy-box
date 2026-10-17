@@ -79,6 +79,18 @@ public class LeaderboardTests
     }
 
     [Fact]
+    public void TimeThenScore_BreaksTimeTiesByFewerFlips()
+    {
+        var board = new Leaderboard(RankOrder.TimeAscScoreAsc);
+        board.Add(E("many", 20, 30000));
+        board.Add(E("few", 14, 30000));
+        board.Add(E("fast", 30, 25000));
+        board.Add(E("slow", 12, 40000));
+        Assert.Equal(new[] { "fast", "few", "many", "slow" }, board.Entries.Select(e => e.Name));
+        Assert.False(board.IsNewBest(E("tie", 30, 25000)));
+    }
+
+    [Fact]
     public void RecordBook_RoundTripsThroughJson()
     {
         var book = new RecordBook();

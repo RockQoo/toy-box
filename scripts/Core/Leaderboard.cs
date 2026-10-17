@@ -11,10 +11,12 @@ public enum RankOrder
 {
     /// <summary>Higher score first (balloon, fruit, dino).</summary>
     ScoreDesc,
-    /// <summary>Shorter time first (memory match, maze).</summary>
+    /// <summary>Shorter time first (maze).</summary>
     TimeAsc,
     /// <summary>Higher score first, then shorter time (quiz).</summary>
     ScoreDescTimeAsc,
+    /// <summary>Shorter time first, then lower score (memory match: the score holds the card flips, fewer is better).</summary>
+    TimeAscScoreAsc,
 }
 
 /// <summary>One leaderboard row. <see cref="TimeMs"/> is unused by score-only games.</summary>
@@ -64,6 +66,7 @@ public sealed class Leaderboard
     {
         RankOrder.ScoreDesc => b.Score.CompareTo(a.Score),
         RankOrder.TimeAsc => a.TimeMs.CompareTo(b.TimeMs),
+        RankOrder.TimeAscScoreAsc => a.TimeMs != b.TimeMs ? a.TimeMs.CompareTo(b.TimeMs) : a.Score.CompareTo(b.Score),
         _ => a.Score != b.Score ? b.Score.CompareTo(a.Score) : a.TimeMs.CompareTo(b.TimeMs),
     };
 

@@ -91,6 +91,13 @@ public static class SfxSynth
             Render(0.2f, u => ExpSweep(u, 370, 470), Wave.Sine, noiseMix: 0f, decay: 3f, gain: 0.4f),
         });
 
+    /// <summary>Card flip: a short papery "팔락" (a soft noise swish over a quick upward blip). Light, it is heard a lot.</summary>
+    public static float[] CardFlip() =>
+        Render(0.09f, u => ExpSweep(u, 700, 1400), Wave.Sine, noiseMix: 0.45f, decay: 5f, gain: 0.32f, clickTime: 0.005f);
+
+    /// <summary>Animal match found: a bright two-bell "띵동!" climbing a fourth (G5 then C6), a step above a flip.</summary>
+    public static float[] MatchChime() => Bell(new[] { 783.99f, 1046.5f, 1318.5f }, 0.09f, 0.55f, 0.4f);
+
     /// <summary>Result count-up step: a tiny tick (pitch is raised by the caller as the number grows).</summary>
     public static float[] CountStep() =>
         Render(0.04f, _ => 1200, Wave.Sine, noiseMix: 0f, decay: 6f, gain: 0.35f);

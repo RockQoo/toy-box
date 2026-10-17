@@ -19,6 +19,8 @@ public sealed class ResultSpec
     public required Func<float, string> FormatValue { get; init; }
     /// <summary>Smaller for a long value text (e.g. "9문제를 맞혔어요!").</summary>
     public int ValueFontSize { get; init; } = 84;
+    /// <summary>An extra line under the big number (e.g. "뒤집은 횟수 18번"). Shown once the count-up ends. Null = none.</summary>
+    public string? Detail { get; init; }
     /// <summary>A row of this many stars under the value, <see cref="StarsEarned"/> of them lit in step with the count-up. 0 = no row.</summary>
     public int StarsTotal { get; init; }
     public int StarsEarned { get; init; }
@@ -44,6 +46,7 @@ public partial class ResultPanel : Control
 
     private ResultSpec _spec = null!;
     private Label _value = null!;
+    private Label? _detail;
     private Label _best = null!;
     private Label _badge = null!;
     private Label _message = null!;
@@ -104,6 +107,14 @@ public partial class ResultPanel : Control
         _value = Ui.Label(_spec.FormatValue(0), _spec.ValueFontSize, UiTheme.Blue, 14, Colors.White);
         _value.HorizontalAlignment = HorizontalAlignment.Center;
         left.AddChild(_value);
+
+        if (_spec.Detail is { } detail)
+        {
+            _detail = Ui.Label(detail, 32, UiTheme.Ink);
+            _detail.HorizontalAlignment = HorizontalAlignment.Center;
+            _detail.Modulate = Colors.Transparent;
+            left.AddChild(_detail);
+        }
 
         if (_spec.StarsTotal > 0)
             left.AddChild(BuildStars());
@@ -283,6 +294,13 @@ public partial class ResultPanel : Control
         _value.Text = _spec.FormatValue(target);
         LightStars(_spec.StarsEarned);
         Ui.Punch(_value, 0.3f);
+        if (_detail is not null)
+        {
+            await Wait(0.15f);
+            _detail.Modulate = Colors.White;
+            Ui.PopIn(_detail, 0f, 0.3f);
+            Audio.I.CountStep(1.6f);
+        }
 
         // 2. Best record celebration
         var board = App.I.Board(_spec.Game.Id, _spec.VariantId);

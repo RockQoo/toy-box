@@ -32,6 +32,7 @@ public partial class Audio : Node
     private AudioStreamWav _timeUp = null!, _fanfare = null!, _count = null!, _whoosh = null!;
     private AudioStreamWav _catch = null!, _coin = null!, _plop = null!;
     private AudioStreamWav _ding = null!, _chime = null!, _retry = null!;
+    private AudioStreamWav _flip = null!, _match = null!;
     private AudioStreamWav _menuSong = null!, _playSong = null!;
 
     public float BgmVolume
@@ -80,6 +81,8 @@ public partial class Audio : Node
         _ding = ToStream(SfxSynth.DingDongDang());
         _chime = ToStream(SfxSynth.QuestionChime());
         _retry = ToStream(SfxSynth.Retry());
+        _flip = ToStream(SfxSynth.CardFlip());
+        _match = ToStream(SfxSynth.MatchChime());
         _menuSong = ToStream(SfxSynth.MenuSong(), loop: true);
         _playSong = ToStream(SfxSynth.PlaySong(), loop: true);
     }
@@ -100,6 +103,10 @@ public partial class Audio : Node
     public void QuestionChime() => Play(_chime, 1f, -5f);
     /// <summary>Quiz: wrong pick, try again. Soft on purpose.</summary>
     public void Retry() => Play(_retry, 1f, -6f);
+    /// <summary>Animal match: a card turns over. Face-down turns are lower and quieter.</summary>
+    public void CardFlip(bool faceUp = true) => Play(_flip, (faceUp ? 1f : 0.8f) * Jitter(0.05f), faceUp ? -3f : -8f);
+    /// <summary>Animal match: a pair found. Climbs the scale with each pair of the game.</summary>
+    public void MatchChime(int pairs) => Play(_match, SfxSynth.StreakPitch(pairs), -2f);
     public void Click() => Play(_click, Jitter(0.04f), -4f);
     public void Bonk() => Play(_bonk, 1f, -2f);
     public void Tick(float pitch = 1f) => Play(_tick, pitch, -4f);
