@@ -56,7 +56,8 @@ public partial class ResultPanel : Control
     private Label _namePrompt = null!;
     private GridContainer _namePicks = null!;
     private HBoxContainer _nameTyping = null!;
-    private LineEdit _nameEdit = null!;
+    private LineEdit? _nameEdit;        // Phones: OS keyboard
+    private HangulField? _hangulField;  // PC: composes Hangul itself (the OS IME did not reach Godot)
     private string[] _recentNames = System.Array.Empty<string>();
     private int _rank = -1;
     private HBoxContainer _buttons = null!;
@@ -239,18 +240,37 @@ public partial class ResultPanel : Control
 
         _nameTyping = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center, Visible = false };
         _nameTyping.AddThemeConstantOverride("separation", 10);
-        // No select-all-on-focus and no prefilled text: with the Korean IME, the composing syllable is kept apart
-        // from Text until it is committed, so the field starts empty and is committed explicitly on submit.
-        _nameEdit = new LineEdit
+        if (OS.HasFeature("mobile"))
         {
-            PlaceholderText = RecentNames.DefaultName,
-            MaxLength = RecentNames.MaxLength,
-            CustomMinimumSize = new Vector2(_recentNames.Length > 0 ? 230 : 300, 72),
-            Alignment = HorizontalAlignment.Center,
-        };
-        _nameEdit.AddThemeFontSizeOverride("font_size", 32);
-        _nameEdit.TextSubmitted += _ => SubmitTyped();
-        _nameTyping.AddChild(_nameEdit);
+            // No select-all-on-focus and no prefilled text: with an IME, the composing syllable is kept apart
+            // from Text until it is committed, so the field starts empty and is committed explicitly on submit.
+            _nameEdit = new LineEdit
+            {
+                PlaceholderText = RecentNames.DefaultName,
+                MaxLength = RecentNames.MaxLength,
+                CustomMinimumSize = new Vector2(_recentNames.Length > 0 ? 230 : 300, 72),
+                Alignment = HorizontalAlignment.Center,
+            };
+            _nameEdit.AddThemeFontSizeOverride("font_size", 32);
+            _nameEdit.TextSubmitted += _ => SubmitTyped();
+            _nameTyping.AddChild(_nameEdit);
+        }
+        else
+        {
+            _hangulField = HangulField.Create(RecentNames.MaxLength, RecentNames.DefaultName,
+                new Vector2(_recentNames.Length > 0 ? 200 : 250, 72));
+            _hangulField.Submitted += SubmitTyped;
+            _nameTyping.AddChild(_hangulField);
+            Button mode = null!;
+            mode = Ui.Button("한", () =>
+            {
+                _hangulField.Korean = !_hangulField.Korean;
+                _hangulField.GrabFocus();
+            }, UiTheme.Purple, 26, null, new Vector2(64, 72));
+            _hangulField.ModeChanged += () => mode.Text = _hangulField.Korean ? "한" : "A";
+            mode.TooltipText = "한글 / 영어";
+            _nameTyping.AddChild(mode);
+        }
         _nameTyping.AddChild(Ui.Button("확인", SubmitTyped, UiTheme.Green, 28, null, new Vector2(120, 72)));
         if (_recentNames.Length > 0)
             _nameTyping.AddChild(Ui.Button("뒤로", ShowPicks, null, 24, null, new Vector2(100, 72)));
@@ -260,8 +280,9 @@ public partial class ResultPanel : Control
 
     private void ShowPicks()
     {
-        _nameEdit.CancelIme();
-        _nameEdit.ReleaseFocus();
+        _nameEdit?.CancelIme();
+        _nameEdit?.ReleaseFocus();
+        _hangulField?.ReleaseFocus();
         _nameTyping.Visible = false;
         _namePicks.Visible = true;
         _namePrompt.Text = $"{_rank + 1}등이에요! 누구예요?";
@@ -271,8 +292,14 @@ public partial class ResultPanel : Control
     {
         _namePicks.Visible = false;
         _nameTyping.Visible = true;
-        _nameEdit.Text = "";
         _namePrompt.Text = $"{_rank + 1}등이에요! 이름을 적어 주세요";
+        if (_hangulField is not null)
+        {
+            _hangulField.Clear();
+            Callable.From(() => _hangulField.GrabFocus()).CallDeferred();
+            return;
+        }
+        _nameEdit!.Text = "";
         // Focus after layout so the IME window is placed at the caret
         Callable.From(() =>
         {
@@ -362,11 +389,16 @@ public partial class ResultPanel : Control
     {
         if (_submitted || _typedSubmitPending)
             return;
+        if (_hangulField is not null)
+        {
+            SubmitName(_hangulField.Text);
+            return;
+        }
         _typedSubmitPending = true;
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         _typedSubmitPending = false;
-        if (_nameEdit.HasImeText())
+        if (_nameEdit!.HasImeText())
             _nameEdit.ApplyIme();
         SubmitName(_nameEdit.Text);
     }
@@ -376,8 +408,9 @@ public partial class ResultPanel : Control
         if (_submitted)
             return;
         _submitted = true;
-        _nameEdit.CancelIme();
-        _nameEdit.ReleaseFocus();
+        _nameEdit?.CancelIme();
+        _nameEdit?.ReleaseFocus();
+        _hangulField?.ReleaseFocus();
         var name = App.I.RememberName(typed);
 
         var rank = App.I.SubmitRecord(_spec.Game.Id, _spec.VariantId, _spec.Entry with { Name = name });

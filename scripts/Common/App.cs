@@ -161,8 +161,12 @@ public partial class App : Node
         return rank;
     }
 
+    /// <summary>Clears every board. The previous file is kept as records-before-clear.json in case it was a mistake.</summary>
     public void ClearAllRecords()
     {
+        if (FileAccess.FileExists(RecordsPath))
+            DirAccess.CopyAbsolute(ProjectSettings.GlobalizePath(RecordsPath),
+                ProjectSettings.GlobalizePath("user://records-before-clear.json"));
         _records.ClearAll();
         SaveRecords();
     }
