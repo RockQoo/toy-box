@@ -24,6 +24,8 @@ public sealed class ResultSpec
     /// <summary>A row of this many stars under the value, <see cref="StarsEarned"/> of them lit in step with the count-up. 0 = no row.</summary>
     public int StarsTotal { get; init; }
     public int StarsEarned { get; init; }
+    /// <summary>Text next to the star row for a lit count. Null = "별 N개".</summary>
+    public Func<int, string>? StarsLabel { get; init; }
     /// <summary>The record to rank. Its name is filled in from the name entry.</summary>
     public required ScoreEntry Entry { get; init; }
     /// <summary>False skips ranking entirely (e.g. a score of 0).</summary>
@@ -177,7 +179,7 @@ public partial class ResultPanel : Control
     {
         var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
         row.AddThemeConstantOverride("separation", 2);
-        var size = Mathf.Min(34f, 340f / _spec.StarsTotal);
+        var size = Mathf.Min(_spec.StarsTotal <= 5 ? 52f : 34f, 340f / _spec.StarsTotal); // A few stars (maze: 3) are shown bigger
         for (var i = 0; i < _spec.StarsTotal; i++)
         {
             var star = Ui.Icon("res://assets/sprites/ui/star.png", size);
@@ -186,12 +188,14 @@ public partial class ResultPanel : Control
             _stars.Add(star);
         }
         row.AddChild(Ui.Spacer(0, 10));
-        _starCount = Ui.Label("별 0개", 28, UiTheme.Orange, 8, Colors.White);
+        _starCount = Ui.Label(StarsText(0), 28, UiTheme.Orange, 8, Colors.White);
         row.AddChild(_starCount);
         return row;
     }
 
     private static readonly Color DimStar = new(0.2f, 0.22f, 0.36f, 0.22f);
+
+    private string StarsText(int count) => _spec.StarsLabel?.Invoke(count) ?? $"별 {count}개";
 
     private void LightStars(int count)
     {
@@ -206,7 +210,7 @@ public partial class ResultPanel : Control
                 .SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
         }
         if (_starCount is not null)
-            _starCount.Text = $"별 {count}개";
+            _starCount.Text = StarsText(count);
     }
 
     private VBoxContainer BuildNameEntry()

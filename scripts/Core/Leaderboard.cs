@@ -11,9 +11,9 @@ public enum RankOrder
 {
     /// <summary>Higher score first (balloon, fruit, dino).</summary>
     ScoreDesc,
-    /// <summary>Shorter time first (maze).</summary>
+    /// <summary>Shorter time first.</summary>
     TimeAsc,
-    /// <summary>Higher score first, then shorter time (quiz).</summary>
+    /// <summary>Higher score first, then shorter time (quiz; maze: the score holds the stars).</summary>
     ScoreDescTimeAsc,
     /// <summary>Shorter time first, then lower score (memory match: the score holds the card flips, fewer is better).</summary>
     TimeAscScoreAsc,

@@ -98,6 +98,17 @@ public static class SfxSynth
     /// <summary>Animal match found: a bright two-bell "띵동!" climbing a fourth (G5 then C6), a step above a flip.</summary>
     public static float[] MatchChime() => Bell(new[] { 783.99f, 1046.5f, 1318.5f }, 0.09f, 0.55f, 0.4f);
 
+    /// <summary>Maze: one step. A tiny, soft, low "톡" (heard on every move, so it stays out of the way).</summary>
+    public static float[] Step() =>
+        Render(0.05f, u => ExpSweep(u, 520, 380), Wave.Sine, noiseMix: 0.06f, decay: 6f, gain: 0.4f);
+
+    /// <summary>Maze: walked into a wall. A short, round, low "통" (softer than <see cref="Bonk"/>, not an error).</summary>
+    public static float[] WallBump() =>
+        Render(0.1f, u => ExpSweep(u, 230, 150), Wave.Sine, noiseMix: 0.12f, decay: 7f, gain: 0.55f, clickTime: 0.004f);
+
+    /// <summary>Maze: a star picked up. A quick sparkling bell run up to a high note ("반짝!").</summary>
+    public static float[] StarPickup() => Bell(new[] { 1046.5f, 1318.5f, 1568f, 2093f }, 0.055f, 0.5f, 0.32f);
+
     /// <summary>Result count-up step: a tiny tick (pitch is raised by the caller as the number grows).</summary>
     public static float[] CountStep() =>
         Render(0.04f, _ => 1200, Wave.Sine, noiseMix: 0f, decay: 6f, gain: 0.35f);

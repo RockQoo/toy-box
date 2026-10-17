@@ -38,7 +38,7 @@ public sealed record GameInfo(
         "balloon" => $"{e.Score}개",
         "fruit" => $"{e.Score}개",
         "memory" => MemoryRules.FormatRecord(e.TimeMs, e.Score),
-        "maze" => FormatTime(e.TimeMs),
+        "maze" => MazeRules.FormatRecord(e.Score, e.TimeMs),
         "quiz" => $"{e.Score}문제 · {FormatTime(e.TimeMs)}",
         _ => $"{e.Score}점",
     };
@@ -58,7 +58,7 @@ public static class GameCatalog
         new GameInfo("memory", "동물 짝 맞추기", "res://assets/sprites/animal/panda.png",
             "res://scenes/games/Memory.tscn", RankOrder.TimeAscScoreAsc, "걸린 시간", MemoryRules.Variants),
         new GameInfo("maze", "미로 탈출", "res://assets/sprites/animal/turtle.png",
-            null, RankOrder.TimeAsc, "걸린 시간"),
+            "res://scenes/games/Maze.tscn", RankOrder.ScoreDescTimeAsc, "별 · 걸린 시간", MazeRules.Variants),
         new GameInfo("quiz", "숫자 / 색깔 퀴즈", "res://assets/sprites/quiz/num_3.png",
             "res://scenes/games/Quiz.tscn", RankOrder.ScoreDescTimeAsc, "맞힌 문제", QuizRules.Variants),
         new GameInfo("dino", "공룡 점프", "res://assets/sprites/dino/dino_run.png",

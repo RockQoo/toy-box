@@ -32,6 +32,7 @@ public class SfxSynthTests
                      SfxSynth.Pop(), SfxSynth.Catch(), SfxSynth.Coin(), SfxSynth.Plop(),
                      SfxSynth.DingDongDang(), SfxSynth.QuestionChime(), SfxSynth.Retry(),
                      SfxSynth.CardFlip(), SfxSynth.MatchChime(),
+                     SfxSynth.Step(), SfxSynth.WallBump(), SfxSynth.StarPickup(),
                  })
         {
             Assert.True(sfx.Length > 0);

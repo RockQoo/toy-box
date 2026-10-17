@@ -33,6 +33,7 @@ public partial class Audio : Node
     private AudioStreamWav _catch = null!, _coin = null!, _plop = null!;
     private AudioStreamWav _ding = null!, _chime = null!, _retry = null!;
     private AudioStreamWav _flip = null!, _match = null!;
+    private AudioStreamWav _step = null!, _wallBump = null!, _starPickup = null!;
     private AudioStreamWav _menuSong = null!, _playSong = null!;
 
     public float BgmVolume
@@ -83,6 +84,9 @@ public partial class Audio : Node
         _retry = ToStream(SfxSynth.Retry());
         _flip = ToStream(SfxSynth.CardFlip());
         _match = ToStream(SfxSynth.MatchChime());
+        _step = ToStream(SfxSynth.Step());
+        _wallBump = ToStream(SfxSynth.WallBump());
+        _starPickup = ToStream(SfxSynth.StarPickup());
         _menuSong = ToStream(SfxSynth.MenuSong(), loop: true);
         _playSong = ToStream(SfxSynth.PlaySong(), loop: true);
     }
@@ -107,6 +111,12 @@ public partial class Audio : Node
     public void CardFlip(bool faceUp = true) => Play(_flip, (faceUp ? 1f : 0.8f) * Jitter(0.05f), faceUp ? -3f : -8f);
     /// <summary>Animal match: a pair found. Climbs the scale with each pair of the game.</summary>
     public void MatchChime(int pairs) => Play(_match, SfxSynth.StreakPitch(pairs), -2f);
+    /// <summary>Maze: one step. Alternates two close pitches like footsteps; quiet, it is heard on every move.</summary>
+    public void Step(bool alternate) => Play(_step, (alternate ? 1.12f : 1f) * Jitter(0.03f), -9f);
+    /// <summary>Maze: walked into a wall ("통"). Soft, no penalty.</summary>
+    public void WallBump() => Play(_wallBump, Jitter(0.05f), -5f);
+    /// <summary>Maze: a star picked up. Climbs with each star of the maze.</summary>
+    public void StarPickup(int stars) => Play(_starPickup, SfxSynth.StreakPitch(stars), -2f);
     public void Click() => Play(_click, Jitter(0.04f), -4f);
     public void Bonk() => Play(_bonk, 1f, -2f);
     public void Tick(float pitch = 1f) => Play(_tick, pitch, -4f);
