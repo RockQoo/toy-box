@@ -60,4 +60,5 @@ Godot_v4.7.2-stable_mono_win64_console.exe --path . --write-movie <dir>/f.png --
 ## 검토
 
 - 연출/완성도 최종 검토는 `/polish-review` 스킬(`.claude/skills/polish-review/`)로 한다. 검토만 하고, 사용자가 고른 항목만 구현한다.
+- 필요한 리소스 목록은 `docs/resources.md`. 리소스를 받으면 체크하고 관련 개선 항목을 진행한다.
 - 개선 사항은 `docs/improvements/`에 범위별로 모은다(`common.md`, `main-menu.md`, 게임별 `NN-<id>.md`). 검토 결과는 여기에 ID(C-/M-/B-…)와 우선순위(P1~P3)를 붙여 추가하고, 구현하면 체크한다. 작성 규칙은 그 폴더의 README.md에 있다.
