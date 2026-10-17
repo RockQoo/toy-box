@@ -26,6 +26,7 @@
   - 문제: "규나", "다온"을 치면 한글이 아니라 영문 글자가 들어갔다(기록의 "sinhye", "daon", 잘린 "시"가 그 흔적). 진단 씬으로 실제 Windows 키 입력을 넣어 보니, `LineEdit`이 편집 중이고 IME가 한글 모드인데도 Godot에 IME 조합 이벤트(`ImeGetText`)가 한 번도 오지 않았다. Godot 4.7.2의 Windows IME 연결(IMM32)이 이 PC의 한글 IME와 맞지 않는 것으로 보인다. Caps Lock이 켜져 있으면 영문 대문자가 들어가는 것도 확인했다.
   - 위치: `scripts/Common/Ui/ResultPanel.cs` `BuildNameEntry`, 새 파일 `scripts/Common/Ui/HangulField.cs`, `scripts/Core/HangulComposer.cs`
   - 완료: PC에서는 OS IME에 기대지 않고 이름 칸이 키 입력을 직접 받아 두벌식으로 조합한다(`HangulComposer`, 겹받침·이중 모음·받침 넘기기·자모 단위 백스페이스, 단위 테스트 19개). 글자는 물리 키 위치와 Shift로 읽으므로 Caps Lock과 IME 모드에 영향받지 않는다. 입력 칸 옆에 한/영 버튼을 두었다(기본 한글). 실제 키 입력 자동 시험으로 "규나"와 Caps Lock을 켠 상태의 "다온"이 저장되는 것을 확인했다. 안드로이드는 화면 키보드가 필요하므로 기존 `LineEdit`을 그대로 쓴다.
+  - 사용자 확인: 2026-10-17 릴리즈 빌드에서 공룡 점프 결과 화면에 "다온"을 한글로 입력해 저장되는 것을 직접 확인함.
   - 출처: 2026-10-17 사용자 제보(두 번째)
 
 ## P2
