@@ -49,10 +49,11 @@ public partial class MainMenu : Control
         // Staggered entrance once the containers have sized everything
         CallDeferred(MethodName.AnimateIn, new Godot.Collections.Array<Control>(cards));
 
-        // Dev: `-- --open=records` / `--open=settings` opens a popup at start (for screenshots)
+        // Dev: `-- --open=records` (or `--open=records:<gameId>` for that game's tab) / `--open=settings` opens a popup
+        // at start (for screenshots)
         var args = OS.GetCmdlineUserArgs();
-        if (args.Contains("--open=records"))
-            ShowRecords();
+        if (args.FirstOrDefault(a => a.StartsWith("--open=records")) is { } open)
+            ShowRecords(open.Contains(':') ? open[(open.IndexOf(':') + 1)..] : null);
         else if (args.Contains("--open=settings"))
             ShowSettings();
     }
@@ -99,9 +100,11 @@ public partial class MainMenu : Control
             tag.AddChild(Ui.Label("준비 중", 20, Colors.White, 6));
             card.AddChild(tag);
         }
-        else if (App.I.Board(game.Id).Best is { } best)
+        else if (BestFor(game) is { } found)
         {
-            var bestLabel = Ui.Label($"최고 {game.FormatValue(best)}", 20, UiTheme.Orange);
+            var (best, variantLabel) = found;
+            var text = variantLabel is null ? $"최고 {game.FormatValue(best)}" : $"{variantLabel} 최고 {game.FormatValue(best)}";
+            var bestLabel = Ui.Label(text, 20, UiTheme.Orange);
             bestLabel.HorizontalAlignment = HorizontalAlignment.Center;
             box.AddChild(bestLabel);
         }
@@ -120,6 +123,15 @@ public partial class MainMenu : Control
             }
         };
         return card;
+    }
+
+    /// <summary>The record a menu card shows. Games with variants show the hardest variant that has a record.</summary>
+    private static (Core.ScoreEntry Best, string? VariantLabel)? BestFor(GameInfo game)
+    {
+        if (!game.HasVariants)
+            return App.I.Board(game.Id).Best is { } best ? (best, null) : null;
+        var variant = game.FeaturedVariant();
+        return variant is null ? null : (App.I.Board(game.Id, variant.Id).Best!, variant.Label);
     }
 
     // ---- Popups ----
@@ -148,7 +160,9 @@ public partial class MainMenu : Control
     private static Button CloseButton(Control popup) =>
         Ui.Button("닫기", popup.QueueFree, UiTheme.Pink, 28, null, new Vector2(180, 70));
 
-    private void ShowRecords()
+    private void ShowRecords() => ShowRecords(null);
+
+    private void ShowRecords(string? startGameId)
     {
         var (popup, body) = OpenPopup("기록");
 
@@ -161,7 +175,7 @@ public partial class MainMenu : Control
         side.AddThemeConstantOverride("separation", 12);
         columns.AddChild(side);
         var tabs = ChoiceRow.Create("", GameCatalog.All.Select(g => new Choice(g.Title.Split(' ')[0], g.IconPath)).ToList(),
-            0, 180, vertical: true);
+            Mathf.Max(0, GameCatalog.All.ToList().FindIndex(g => g.Id == startGameId)), 180, vertical: true);
         side.AddChild(tabs);
         side.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
         var close = CloseButton(popup);
@@ -171,17 +185,59 @@ public partial class MainMenu : Control
         var listHolder = new MarginContainer { CustomMinimumSize = new Vector2(600, 0) };
         columns.AddChild(listHolder);
 
+        // A game with variants (quiz difficulty) gets a row of variant tabs above its list
         void ShowGame(int index)
         {
             foreach (var child in listHolder.GetChildren())
                 child.QueueFree();
-            var list = RankingList.Create(GameCatalog.All[index]);
-            listHolder.AddChild(list);
-            list.Refresh();
+            var game = GameCatalog.All[index];
+            var column = new VBoxContainer();
+            column.AddThemeConstantOverride("separation", 8);
+            listHolder.AddChild(column);
+            var listSlot = new MarginContainer();
+
+            void ShowBoard(string? variantId)
+            {
+                foreach (var child in listSlot.GetChildren())
+                    child.QueueFree();
+                var list = RankingList.Create(game, variantId);
+                listSlot.AddChild(list);
+                list.Refresh();
+            }
+
+            if (game.HasVariants)
+            {
+                var start = game.FeaturedVariant() is { } featured ? IndexOf(game.Variants, featured) : 0;
+                var variantTabs = ChoiceRow.Create("", game.Variants.Select(v => new Choice(v.Label)).ToList(), start, 130,
+                    chipHeight: 56);
+                variantTabs.Alignment = BoxContainer.AlignmentMode.Center;
+                variantTabs.Selected += i => ShowBoard(game.Variants[i].Id);
+                column.AddChild(variantTabs);
+                ShowBoard(game.Variants[start].Id);
+            }
+            else
+            {
+                // Same height as the variant tabs, so the popup does not jump when switching games
+                var name = Ui.Label(game.Title, 30, UiTheme.Ink);
+                name.HorizontalAlignment = HorizontalAlignment.Center;
+                name.VerticalAlignment = VerticalAlignment.Center;
+                name.CustomMinimumSize = new Vector2(0, 56);
+                column.AddChild(name);
+                ShowBoard(null);
+            }
+            column.AddChild(listSlot);
+        }
+
+        static int IndexOf(System.Collections.Generic.IReadOnlyList<Core.GameVariant> list, Core.GameVariant item)
+        {
+            for (var i = 0; i < list.Count; i++)
+                if (list[i] == item)
+                    return i;
+            return 0;
         }
 
         tabs.Selected += ShowGame;
-        ShowGame(0);
+        ShowGame(tabs.SelectedIndex);
     }
 
     private void ShowSettings()

@@ -4,16 +4,18 @@ using ToyBox.Core;
 
 namespace ToyBox.Common;
 
-/// <summary>Top-10 table for one game. Rows 1-3 get gold/silver/bronze badges; an optional row is highlighted (a new record).</summary>
+/// <summary>Top-10 table for one game (or one variant board of it). Rows 1-3 get gold/silver/bronze badges; an optional row is highlighted (a new record).</summary>
 public partial class RankingList : VBoxContainer
 {
     private const int RowHeight = 46;
 
     private GameInfo _game = null!;
+    private string? _variantId;
 
-    public static RankingList Create(GameInfo game)
+    /// <param name="variantId">Which board of a game with variants (see <see cref="GameInfo.Variants"/>).</param>
+    public static RankingList Create(GameInfo game, string? variantId = null)
     {
-        var list = new RankingList { _game = game };
+        var list = new RankingList { _game = game, _variantId = variantId };
         list.AddThemeConstantOverride("separation", 5);
         return list;
     }
@@ -24,7 +26,7 @@ public partial class RankingList : VBoxContainer
         foreach (var child in GetChildren())
             child.QueueFree();
 
-        var entries = App.I.Board(_game.Id).Entries;
+        var entries = App.I.Board(_game.Id, _variantId).Entries;
         for (var i = 0; i < Leaderboard.Capacity; i++)
         {
             var row = Row(i, i < entries.Count ? entries[i] : null, i == highlight);

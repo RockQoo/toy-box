@@ -27,7 +27,11 @@ public class SfxSynthTests
     [Fact]
     public void EffectsRenderWithinRange()
     {
-        foreach (var sfx in new[] { SfxSynth.Pop(), SfxSynth.Catch(), SfxSynth.Coin(), SfxSynth.Plop() })
+        foreach (var sfx in new[]
+                 {
+                     SfxSynth.Pop(), SfxSynth.Catch(), SfxSynth.Coin(), SfxSynth.Plop(),
+                     SfxSynth.DingDongDang(), SfxSynth.QuestionChime(), SfxSynth.Retry(),
+                 })
         {
             Assert.True(sfx.Length > 0);
             Assert.All(sfx, s => Assert.InRange(s, -1f, 1f));

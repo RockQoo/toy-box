@@ -30,7 +30,7 @@ public partial class App : Node
     public string[] RecentNames =>
         Core.RecentNames.Load((string[])GetSetting("player", "recent_names", Array.Empty<string>()),
             (string)GetSetting("player", "last_name", ""),
-            GameCatalog.All.SelectMany(g => Board(g.Id).Entries));
+            _records.AllEntries);
 
     /// <summary>Remembers a name as the most recent one. Returns the cleaned name that was stored.</summary>
     public string RememberName(string name)
@@ -46,7 +46,8 @@ public partial class App : Node
         I = this;
         ProcessMode = ProcessModeEnum.Always;
         _settings.Load(SettingsPath); // Missing file is fine: defaults are used
-        _records = RecordBook.FromJson(ReadText(RecordsPath), id => GameCatalog.Find(id)?.Order ?? RankOrder.ScoreDesc);
+        // Variant boards ("quiz:hard") rank like their game
+        _records = RecordBook.FromJson(ReadText(RecordsPath), key => OrderOf(BoardKey.GameId(key)));
         GetTree().Root.Theme = UiTheme.Build();
         ThemeDB.FallbackFont = UiTheme.Font; // Used by _Draw() text (FloatingText etc.)
     }
@@ -103,13 +104,16 @@ public partial class App : Node
 
     // ---- Records ----
 
-    public Leaderboard Board(string gameId) =>
-        _records.Get(gameId, GameCatalog.Find(gameId)?.Order ?? RankOrder.ScoreDesc);
+    /// <summary>A game's top 10. Games with variants (see <see cref="GameInfo.Variants"/>) keep one per <paramref name="variantId"/>.</summary>
+    public Leaderboard Board(string gameId, string? variantId = null) =>
+        _records.Get(BoardKey.Of(gameId, variantId), OrderOf(gameId));
+
+    private static RankOrder OrderOf(string gameId) => GameCatalog.Find(gameId)?.Order ?? RankOrder.ScoreDesc;
 
     /// <summary>Adds a record and saves to disk. Returns its zero-based rank, or -1 if it did not make the top 10.</summary>
-    public int SubmitRecord(string gameId, ScoreEntry entry)
+    public int SubmitRecord(string gameId, string? variantId, ScoreEntry entry)
     {
-        var rank = Board(gameId).Add(entry);
+        var rank = Board(gameId, variantId).Add(entry);
         if (rank >= 0)
             SaveRecords();
         return rank;
@@ -117,8 +121,7 @@ public partial class App : Node
 
     public void ClearAllRecords()
     {
-        foreach (var game in GameCatalog.All)
-            Board(game.Id).Clear();
+        _records.ClearAll();
         SaveRecords();
     }
 

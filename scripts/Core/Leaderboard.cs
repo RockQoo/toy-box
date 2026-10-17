@@ -75,26 +75,42 @@ public sealed class Leaderboard
     }
 }
 
-/// <summary>All games' leaderboards, keyed by game id, with JSON (de)serialization for saving to disk.</summary>
+/// <summary>
+/// All leaderboards, keyed by game id or by a variant key (see <see cref="BoardKey"/>), with JSON (de)serialization
+/// for saving to disk.
+/// </summary>
 public sealed class RecordBook
 {
     private readonly Dictionary<string, Leaderboard> _boards = new();
 
-    public Leaderboard Get(string gameId, RankOrder order)
+    /// <summary>Every row of every board (e.g. to seed recent names).</summary>
+    public IEnumerable<ScoreEntry> AllEntries => _boards.Values.SelectMany(b => b.Entries);
+
+    /// <summary>Empties every board, including variant boards of games no longer listed.</summary>
+    public void ClearAll()
     {
-        if (!_boards.TryGetValue(gameId, out var board))
+        foreach (var board in _boards.Values)
+            board.Clear();
+    }
+
+    /// <param name="key">A game id, or a variant key from <see cref="BoardKey.Of"/>.</param>
+    public Leaderboard Get(string key, RankOrder order)
+    {
+        if (!_boards.TryGetValue(key, out var board))
         {
             board = new Leaderboard(order);
-            _boards[gameId] = board;
+            _boards[key] = board;
         }
         return board;
     }
 
     public string ToJson() => JsonSerializer.Serialize(
-        _boards.ToDictionary(kv => kv.Key, kv => kv.Value.Entries.ToList()),
+        _boards.Where(kv => kv.Value.Entries.Count > 0) // Boards only looked at (e.g. empty variants) are not written
+            .ToDictionary(kv => kv.Key, kv => kv.Value.Entries.ToList()),
         new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
 
-    /// <summary>Loads saved lists. Each list is re-ranked with the order given by <paramref name="orderOf"/>.
+    /// <summary>Loads saved lists. Each list is re-ranked with the order <paramref name="orderOf"/> gives for its key
+    /// (a variant key such as "quiz:hard" is passed as is; use <see cref="BoardKey.GameId"/> to look the game up).
     /// Broken or missing data yields an empty book rather than an exception.</summary>
     public static RecordBook FromJson(string? json, Func<string, RankOrder> orderOf)
     {

@@ -84,8 +84,11 @@ public partial class Buddy : Node2D
         _bubbleText.Text = text;
         _bubble.Visible = true;
         _bubble.ResetSize();
-        _bubble.Position = new Vector2(-30, -Height - _bubble.Size.Y - 18);
-        _bubble.PivotOffset = new Vector2(30, _bubble.Size.Y);
+        // Grows to the right of the head, but is pulled back left if it would run off the screen edge
+        var overflow = GlobalPosition.X - 30 + _bubble.Size.X - (GetViewportRect().Size.X - 10);
+        var left = -30 - Mathf.Max(0, overflow);
+        _bubble.Position = new Vector2(left, -Height - _bubble.Size.Y - 18);
+        _bubble.PivotOffset = new Vector2(-left, _bubble.Size.Y);
         _bubbleTween?.Kill();
         _bubble.Scale = new Vector2(0.3f, 0.3f);
         _bubble.Modulate = Colors.White;

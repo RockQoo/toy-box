@@ -1,18 +1,37 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ToyBox.Core;
 
 namespace ToyBox.Common;
 
-/// <summary>A mini-game as listed on the main menu and in records. <see cref="ScenePath"/> is null until the game is built.</summary>
+/// <summary>
+/// A mini-game as listed on the main menu and in records. <see cref="ScenePath"/> is null until the game is built.
+/// <see cref="Variants"/> (easiest first) gives a game one leaderboard per variant, e.g. per difficulty when results
+/// from different settings are not comparable. Empty means one board under the plain game id.
+/// </summary>
 public sealed record GameInfo(
     string Id,
     string Title,
     string IconPath,
     string? ScenePath,
     RankOrder Order,
-    string ValueHeader)
+    string ValueHeader,
+    IReadOnlyList<GameVariant>? VariantList = null)
 {
+    public IReadOnlyList<GameVariant> Variants => VariantList ?? Array.Empty<GameVariant>();
+    public bool HasVariants => Variants.Count > 0;
+
+    public string? VariantLabel(string? variantId) => Variants.FirstOrDefault(v => v.Id == variantId)?.Label;
+
+    /// <summary>"숫자 / 색깔 퀴즈 · 보통" for a variant board, the plain title otherwise.</summary>
+    public string BoardTitle(string? variantId) =>
+        VariantLabel(variantId) is { } label ? $"{Title} · {label}" : Title;
+
+    /// <summary>The variant that stands for this game on the menu card: the hardest one with a record (null if none).</summary>
+    public GameVariant? FeaturedVariant() =>
+        BoardKey.Featured(Variants, v => App.I.Board(Id, v).Best is not null);
+
     /// <summary>How a record's value reads in the ranking list.</summary>
     public string FormatValue(ScoreEntry e) => Id switch
     {
@@ -40,7 +59,7 @@ public static class GameCatalog
         new GameInfo("maze", "미로 탈출", "res://assets/sprites/animal/turtle.png",
             null, RankOrder.TimeAsc, "걸린 시간"),
         new GameInfo("quiz", "숫자 / 색깔 퀴즈", "res://assets/sprites/quiz/num_3.png",
-            null, RankOrder.ScoreDescTimeAsc, "맞힌 문제"),
+            "res://scenes/games/Quiz.tscn", RankOrder.ScoreDescTimeAsc, "맞힌 문제", QuizRules.Variants),
         new GameInfo("dino", "공룡 점프", "res://assets/sprites/dino/dino_run.png",
             null, RankOrder.ScoreDesc, "점수"),
     };

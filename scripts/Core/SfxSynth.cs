@@ -77,6 +77,20 @@ public static class SfxSynth
         return Concat(new List<float[]> { intro, chord });
     }
 
+    /// <summary>Quiz correct answer "딩동댕!": three bell notes climbing to the octave (C5 E5 G5, held C6).</summary>
+    public static float[] DingDongDang() => Bell(new[] { 523.25f, 659.25f, 783.99f, 1046.5f }, 0.15f, 0.7f, 0.42f);
+
+    /// <summary>Quiz question appears: a soft, high two-note "띵동" (E6 then C6), so the child looks up.</summary>
+    public static float[] QuestionChime() => Bell(new[] { 1318.5f, 1046.5f }, 0.13f, 0.45f, 0.3f);
+
+    /// <summary>Quiz wrong pick: a gentle, low "음?" that slides up like a question. Not an error buzzer.</summary>
+    public static float[] Retry() =>
+        Concat(new List<float[]>
+        {
+            Render(0.11f, u => ExpSweep(u, 330, 350), Wave.Sine, noiseMix: 0f, decay: 1.5f, gain: 0.4f),
+            Render(0.2f, u => ExpSweep(u, 370, 470), Wave.Sine, noiseMix: 0f, decay: 3f, gain: 0.4f),
+        });
+
     /// <summary>Result count-up step: a tiny tick (pitch is raised by the caller as the number grows).</summary>
     public static float[] CountStep() =>
         Render(0.04f, _ => 1200, Wave.Sine, noiseMix: 0f, decay: 6f, gain: 0.35f);
@@ -173,6 +187,29 @@ public static class SfxSynth
             parts.Add(Render(isLast ? last : step, _ => f, Wave.Triangle, 0f, isLast ? 3f : 2f, gain));
         }
         return Concat(parts);
+    }
+
+    /// <summary>
+    /// Bell-like notes: a sine with a quieter octave overtone, each ringing on under the next (overlapping by the
+    /// step), the last one held for <paramref name="last"/> seconds.
+    /// </summary>
+    private static float[] Bell(float[] notes, float step, float last, float gain)
+    {
+        var total = step * (notes.Length - 1) + last;
+        var mix = new float[(int)(total * SampleRate)];
+        for (var i = 0; i < notes.Length; i++)
+        {
+            var f = notes[i];
+            var length = i == notes.Length - 1 ? last : step * 2.5f;
+            var body = Render(length, _ => f, Wave.Sine, 0f, 4f, gain);
+            var shine = Render(length, _ => f * 2, Wave.Sine, 0f, 7f, gain * 0.3f);
+            var offset = (int)(i * step * SampleRate);
+            for (var s = 0; s < body.Length && offset + s < mix.Length; s++)
+                mix[offset + s] += body[s] + shine[s];
+        }
+        for (var s = 0; s < mix.Length; s++)
+            mix[s] = Math.Clamp(mix[s], -1f, 1f);
+        return mix;
     }
 
     /// <summary>Exponential (pitch-linear) sweep from <paramref name="from"/> to <paramref name="to"/> as u goes 0 to 1.</summary>

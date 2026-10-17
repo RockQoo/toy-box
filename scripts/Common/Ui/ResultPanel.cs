@@ -9,12 +9,19 @@ namespace ToyBox.Common;
 public sealed class ResultSpec
 {
     public required GameInfo Game { get; init; }
+    /// <summary>Which leaderboard of a game with variants (see <see cref="GameInfo.Variants"/>), e.g. the quiz difficulty.</summary>
+    public string? VariantId { get; init; }
     public string Title { get; init; } = "게임 끝!";
     /// <summary>Caption above the big number, e.g. "터뜨린 풍선".</summary>
     public required string Caption { get; init; }
     /// <summary>The big number. Counted up from 0 when shown.</summary>
     public required float Value { get; init; }
     public required Func<float, string> FormatValue { get; init; }
+    /// <summary>Smaller for a long value text (e.g. "9문제를 맞혔어요!").</summary>
+    public int ValueFontSize { get; init; } = 84;
+    /// <summary>A row of this many stars under the value, <see cref="StarsEarned"/> of them lit in step with the count-up. 0 = no row.</summary>
+    public int StarsTotal { get; init; }
+    public int StarsEarned { get; init; }
     /// <summary>The record to rank. Its name is filled in from the name entry.</summary>
     public required ScoreEntry Entry { get; init; }
     /// <summary>False skips ranking entirely (e.g. a score of 0).</summary>
@@ -51,6 +58,9 @@ public partial class ResultPanel : Control
     private RankingList _ranking = null!;
     private Control _confettiHost = null!;
     private bool _submitted;
+    private readonly List<TextureRect> _stars = new();
+    private Label? _starCount;
+    private int _litStars;
     private bool _typedSubmitPending;
 
     public static ResultPanel Create(ResultSpec spec)
@@ -91,19 +101,25 @@ public partial class ResultPanel : Control
         caption.HorizontalAlignment = HorizontalAlignment.Center;
         left.AddChild(caption);
 
-        _value = Ui.Label(_spec.FormatValue(0), 84, UiTheme.Blue, 14, Colors.White);
+        _value = Ui.Label(_spec.FormatValue(0), _spec.ValueFontSize, UiTheme.Blue, 14, Colors.White);
         _value.HorizontalAlignment = HorizontalAlignment.Center;
         left.AddChild(_value);
 
+        if (_spec.StarsTotal > 0)
+            left.AddChild(BuildStars());
+
+        // The previous best and the "최고 기록!" badge share one slot: the badge replaces the line when beaten
+        var bestSlot = new MarginContainer();
+        left.AddChild(bestSlot);
+        var board = App.I.Board(_spec.Game.Id, _spec.VariantId);
+        _best = Ui.Label(board.Best is { } best ? $"최고 기록  {_spec.Game.FormatValue(best)}" : "첫 기록에 도전!", 26, UiTheme.InkSoft);
+        _best.HorizontalAlignment = HorizontalAlignment.Center;
+        _best.VerticalAlignment = VerticalAlignment.Center;
+        bestSlot.AddChild(_best);
         _badge = Ui.Label("최고 기록!", 40, UiTheme.Gold, 12, UiTheme.Ink);
         _badge.HorizontalAlignment = HorizontalAlignment.Center;
         _badge.Modulate = Colors.Transparent;
-        left.AddChild(_badge);
-
-        var board = App.I.Board(_spec.Game.Id);
-        _best = Ui.Label(board.Best is { } best ? $"최고 기록  {_spec.Game.FormatValue(best)}" : "첫 기록에 도전!", 26, UiTheme.InkSoft);
-        _best.HorizontalAlignment = HorizontalAlignment.Center;
-        left.AddChild(_best);
+        bestSlot.AddChild(_badge);
 
         _message = Ui.Label("", 26, UiTheme.Ink);
         _message.HorizontalAlignment = HorizontalAlignment.Center;
@@ -128,10 +144,10 @@ public partial class ResultPanel : Control
         var right = new VBoxContainer { CustomMinimumSize = new Vector2(430, 0) };
         right.AddThemeConstantOverride("separation", 8);
         columns.AddChild(right);
-        var header = Ui.Label($"{_spec.Game.Title} 순위", 28, UiTheme.Ink);
+        var header = Ui.Label($"{_spec.Game.BoardTitle(_spec.VariantId)} 순위", 28, UiTheme.Ink);
         header.HorizontalAlignment = HorizontalAlignment.Center;
         right.AddChild(header);
-        _ranking = RankingList.Create(_spec.Game);
+        _ranking = RankingList.Create(_spec.Game, _spec.VariantId);
         right.AddChild(_ranking);
         _ranking.Refresh();
 
@@ -143,6 +159,43 @@ public partial class ResultPanel : Control
         Audio.I.Whoosh();
         Audio.I.DuckMusic(-10f);
         RunSequence();
+    }
+
+    /// <summary>A row of dim stars plus "별 N개" (filled in as they light up).</summary>
+    private Control BuildStars()
+    {
+        var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        row.AddThemeConstantOverride("separation", 2);
+        var size = Mathf.Min(34f, 340f / _spec.StarsTotal);
+        for (var i = 0; i < _spec.StarsTotal; i++)
+        {
+            var star = Ui.Icon("res://assets/sprites/ui/star.png", size);
+            star.SelfModulate = DimStar;
+            row.AddChild(star);
+            _stars.Add(star);
+        }
+        row.AddChild(Ui.Spacer(0, 10));
+        _starCount = Ui.Label("별 0개", 28, UiTheme.Orange, 8, Colors.White);
+        row.AddChild(_starCount);
+        return row;
+    }
+
+    private static readonly Color DimStar = new(0.2f, 0.22f, 0.36f, 0.22f);
+
+    private void LightStars(int count)
+    {
+        count = Mathf.Clamp(count, 0, _stars.Count);
+        for (; _litStars < count; _litStars++)
+        {
+            var star = _stars[_litStars];
+            star.SelfModulate = Colors.White;
+            star.PivotOffset = star.Size / 2;
+            star.Scale = new Vector2(1.6f, 1.6f);
+            star.CreateTween().TweenProperty(star, "scale", Vector2.One, 0.25f)
+                .SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+        }
+        if (_starCount is not null)
+            _starCount.Text = $"별 {count}개";
     }
 
     private VBoxContainer BuildNameEntry()
@@ -223,14 +276,16 @@ public partial class ResultPanel : Control
         for (var i = 1; i <= steps; i++)
         {
             _value.Text = _spec.FormatValue(target * i / steps);
+            LightStars(Mathf.RoundToInt((float)_spec.StarsEarned * i / steps));
             Audio.I.CountStep(1f + 0.5f * i / steps);
             await Wait(duration / steps);
         }
         _value.Text = _spec.FormatValue(target);
+        LightStars(_spec.StarsEarned);
         Ui.Punch(_value, 0.3f);
 
         // 2. Best record celebration
-        var board = App.I.Board(_spec.Game.Id);
+        var board = App.I.Board(_spec.Game.Id, _spec.VariantId);
         var rank = _spec.Recordable ? board.RankOf(_spec.Entry) : -1;
         var isBest = _spec.Recordable && board.IsNewBest(_spec.Entry);
         await Wait(0.25f);
@@ -303,7 +358,7 @@ public partial class ResultPanel : Control
         _nameEdit.ReleaseFocus();
         var name = App.I.RememberName(typed);
 
-        var rank = App.I.SubmitRecord(_spec.Game.Id, _spec.Entry with { Name = name });
+        var rank = App.I.SubmitRecord(_spec.Game.Id, _spec.VariantId, _spec.Entry with { Name = name });
         _nameBox.Visible = false;
         _message.Text = $"{name}, 정말 잘했어요!";
         Ui.PopIn(_message);
