@@ -21,7 +21,7 @@ public partial class MainMenu : Control
         root.AddThemeConstantOverride("separation", 22);
         AddChild(root);
 
-        _title = Ui.Label("토이 박스", 80, UiTheme.Orange, 18, Colors.White);
+        _title = Ui.Label(App.DisplayName, 80, UiTheme.Orange, 18, Colors.White);
         _title.HorizontalAlignment = HorizontalAlignment.Center;
         root.AddChild(_title);
 
@@ -162,11 +162,11 @@ public partial class MainMenu : Control
         return (root, body);
     }
 
-    /// <summary>"토이 박스를 끝낼까요?" — asked once so a child tapping around does not close the app.</summary>
+    /// <summary>"(app name)를 끝낼까요?" — asked once so a child tapping around does not close the app.</summary>
     private void ShowQuit()
     {
         var (popup, body) = OpenPopup("나가기");
-        var question = Ui.Label("토이 박스를 끝낼까요?", 34, UiTheme.Ink);
+        var question = Ui.Label($"{App.DisplayName}를 끝낼까요?", 34, UiTheme.Ink);
         question.HorizontalAlignment = HorizontalAlignment.Center;
         body.AddChild(question);
         body.AddChild(Ui.Spacer(6));

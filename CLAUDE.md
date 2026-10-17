@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 프로젝트 개요
 
-Toy Box: 아이와 함께 하는 미니게임 모음 앱. 메인 메뉴에서 게임을 고르면 그 게임 씬이 실행된다. **Godot 4.7.2 (.NET/C#)**, `net8.0`. 대상은 PC(Windows)와 안드로이드, 가로 1280x720 기준(`canvas_items` + `expand`, 화면비에 따라 가로/세로가 늘어나므로 좌표는 항상 `GetViewportRect().Size` 기준으로 잡는다).
+Toy Box(화면에 보이는 이름은 **"다온이 놀이터"**, `App.DisplayName`): 아이와 함께 하는 미니게임 모음 앱. `project.godot`의 `config/name`은 "Toy Box"로 둔다(바꾸면 `user://` 폴더가 바뀌어 가족 기록이 안 보인다). 메인 메뉴에서 게임을 고르면 그 게임 씬이 실행된다. **Godot 4.7.2 (.NET/C#)**, `net8.0`. 대상은 PC(Windows)와 안드로이드, 가로 1280x720 기준(`canvas_items` + `expand`, 화면비에 따라 가로/세로가 늘어나므로 좌표는 항상 `GetViewportRect().Size` 기준으로 잡는다).
 구조와 연출 방식은 `C:\Work\Projects\color-blast`(같은 사용자의 이전 프로젝트)를 참고해 만들었다.
 
 - 기획서: `docs/GDD.md`(공통 사항, 게임 목록, 확정된 결정) + `docs/games/NN-<id>.md`(게임별). 게임을 추가하면 게임별 파일을 새로 만들고 GDD.md 목록에 추가한다.

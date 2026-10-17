@@ -12,6 +12,12 @@ namespace ToyBox.Common;
 public partial class App : Node
 {
     public const string MainMenuScene = "res://scenes/MainMenu.tscn";
+
+    /// <summary>
+    /// The name players see (menu title, window title). The project's config/name stays "Toy Box" on purpose:
+    /// it decides the user:// folder, and changing it would hide the family's saved records.
+    /// </summary>
+    public const string DisplayName = "다온이 놀이터";
     private const string SettingsPath = "user://settings.cfg";
     private const string RecordsPath = "user://records.json";
     private const float FadeTime = 0.22f;
@@ -64,6 +70,7 @@ public partial class App : Node
         _fade.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         layer.AddChild(_fade);
 
+        GetWindow().Title = DisplayName;
         ApplyResolution(ResolutionIndex);
 
         var args = OS.GetCmdlineUserArgs();
