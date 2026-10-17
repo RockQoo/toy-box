@@ -2,8 +2,6 @@ using System;
 
 namespace ToyBox.Core;
 
-public enum BalloonStartSpeed { Slow, Normal, Fast }
-
 /// <summary>One step of the balloon difficulty ramp (GDD section 1, "난이도 변화").</summary>
 public readonly record struct BalloonPhase(int Index, float StartTime, float RiseSpeed, float SpawnInterval);
 
@@ -33,21 +31,12 @@ public static class BalloonRules
         return phase;
     }
 
-    /// <summary>Multiplier from the start-speed option. Scales rise speed; spawn interval scales inversely but more gently.</summary>
-    public static float SpeedScale(BalloonStartSpeed speed) => speed switch
-    {
-        BalloonStartSpeed.Slow => 0.75f,
-        BalloonStartSpeed.Fast => 1.3f,
-        _ => 1f,
-    };
+    public static float RiseSpeed(float elapsed, StartSpeed speed) =>
+        PhaseAt(elapsed).RiseSpeed * RoundClock.SpeedScale(speed);
 
-    public static float RiseSpeed(float elapsed, BalloonStartSpeed speed) =>
-        PhaseAt(elapsed).RiseSpeed * SpeedScale(speed);
-
-    public static float SpawnInterval(float elapsed, BalloonStartSpeed speed) =>
-        PhaseAt(elapsed).SpawnInterval / MathF.Sqrt(SpeedScale(speed));
+    public static float SpawnInterval(float elapsed, StartSpeed speed) =>
+        PhaseAt(elapsed).SpawnInterval / MathF.Sqrt(RoundClock.SpeedScale(speed));
 
     /// <summary>Whole seconds left to show on the HUD (rounds up, so "1초" shows until time is really over).</summary>
-    public static int SecondsLeft(float elapsed) =>
-        Math.Max(0, (int)MathF.Ceiling(PlaySeconds - elapsed - 1e-4f));
+    public static int SecondsLeft(float elapsed) => RoundClock.SecondsLeft(elapsed, PlaySeconds);
 }

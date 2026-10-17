@@ -29,6 +29,17 @@ public static class SfxSynth
         Render(0.14f, u => ExpSweep(Math.Min(u / 0.25f, 1f), 450, 1300), Wave.Sine,
             noiseMix: 0.15f, decay: 5f, gain: 0.75f, clickTime: 0.012f);
 
+    /// <summary>Fruit caught: a round, bouncy "뿅" (a quick upward sine slide, no noise).</summary>
+    public static float[] Catch() =>
+        Render(0.13f, u => ExpSweep(Math.Min(u / 0.6f, 1f), 520, 1250), Wave.Sine, noiseMix: 0f, decay: 4f, gain: 0.6f);
+
+    /// <summary>Golden fruit: a bright two-note "띠링" (B5 then E6), a step bigger than a normal catch.</summary>
+    public static float[] Coin() => Arpeggio(new[] { 987.77f, 1318.5f }, 0.07f, 0.3f, 0.45f);
+
+    /// <summary>Fruit lands on the floor: a tiny, low, soft "톡". Quiet on purpose (missing is not a failure).</summary>
+    public static float[] Plop() =>
+        Render(0.08f, u => ExpSweep(u, 340, 220), Wave.Sine, noiseMix: 0.05f, decay: 7f, gain: 0.4f);
+
     /// <summary>UI button press: a short soft blip.</summary>
     public static float[] Click() =>
         Render(0.07f, u => ExpSweep(u, 700, 1100), Wave.Sine, noiseMix: 0f, decay: 6f, gain: 0.5f);

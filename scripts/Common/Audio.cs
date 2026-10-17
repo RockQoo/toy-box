@@ -30,6 +30,7 @@ public partial class Audio : Node
 
     private AudioStreamWav _pop = null!, _click = null!, _bonk = null!, _tick = null!, _go = null!, _cheer = null!;
     private AudioStreamWav _timeUp = null!, _fanfare = null!, _count = null!, _whoosh = null!;
+    private AudioStreamWav _catch = null!, _coin = null!, _plop = null!;
     private AudioStreamWav _menuSong = null!, _playSong = null!;
 
     public float BgmVolume
@@ -72,6 +73,9 @@ public partial class Audio : Node
         _fanfare = ToStream(SfxSynth.Fanfare());
         _count = ToStream(SfxSynth.CountStep());
         _whoosh = ToStream(SfxSynth.Whoosh());
+        _catch = ToStream(SfxSynth.Catch());
+        _coin = ToStream(SfxSynth.Coin());
+        _plop = ToStream(SfxSynth.Plop());
         _menuSong = ToStream(SfxSynth.MenuSong(), loop: true);
         _playSong = ToStream(SfxSynth.PlaySong(), loop: true);
     }
@@ -80,6 +84,12 @@ public partial class Audio : Node
 
     /// <summary>Balloon pop. The note climbs the scale while the player keeps a streak going.</summary>
     public void Pop(int streak) => Play(_pop, SfxSynth.StreakPitch(streak) * Jitter(0.03f), -1f);
+    /// <summary>Fruit caught ("뿅"). Climbs the scale with the streak, like <see cref="Pop"/>.</summary>
+    public void Catch(int streak, float db = -2f) => Play(_catch, SfxSynth.StreakPitch(streak) * Jitter(0.02f), db);
+    /// <summary>Golden (bonus) fruit caught.</summary>
+    public void Coin() => Play(_coin, 1f, -2f);
+    /// <summary>Fruit landed on the floor: very quiet, not a failure sound.</summary>
+    public void Plop() => Play(_plop, Jitter(0.08f), -14f);
     public void Click() => Play(_click, Jitter(0.04f), -4f);
     public void Bonk() => Play(_bonk, 1f, -2f);
     public void Tick(float pitch = 1f) => Play(_tick, pitch, -4f);

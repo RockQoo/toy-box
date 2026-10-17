@@ -25,6 +25,16 @@ public class SfxSynthTests
     }
 
     [Fact]
+    public void EffectsRenderWithinRange()
+    {
+        foreach (var sfx in new[] { SfxSynth.Pop(), SfxSynth.Catch(), SfxSynth.Coin(), SfxSynth.Plop() })
+        {
+            Assert.True(sfx.Length > 0);
+            Assert.All(sfx, s => Assert.InRange(s, -1f, 1f));
+        }
+    }
+
+    [Fact]
     public void StreakPitchRisesThenCaps()
     {
         Assert.Equal(1f, SfxSynth.StreakPitch(1), 3);

@@ -34,7 +34,7 @@ public static class GameCatalog
         new GameInfo("balloon", "풍선 터뜨리기", "res://assets/sprites/balloon/red.png",
             "res://scenes/games/Balloon.tscn", RankOrder.ScoreDesc, "터뜨린 풍선"),
         new GameInfo("fruit", "과일 받기", "res://assets/sprites/fruit/apple.png",
-            null, RankOrder.ScoreDesc, "받은 과일"),
+            "res://scenes/games/Fruit.tscn", RankOrder.ScoreDesc, "받은 과일"),
         new GameInfo("memory", "동물 짝 맞추기", "res://assets/sprites/animal/panda.png",
             null, RankOrder.TimeAsc, "걸린 시간"),
         new GameInfo("maze", "미로 탈출", "res://assets/sprites/animal/turtle.png",

@@ -60,6 +60,14 @@ public partial class ResultPanel : Control
         return panel;
     }
 
+    /// <summary>Removes any result screen under <paramref name="parent"/> (e.g. "다시 하기" or "꾸미기").</summary>
+    public static void CloseAll(Node parent)
+    {
+        foreach (var child in parent.GetChildren())
+            if (child is ResultPanel)
+                child.QueueFree();
+    }
+
     public override void _Ready()
     {
         AddChild(Ui.Backdrop());

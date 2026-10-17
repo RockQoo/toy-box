@@ -8,7 +8,7 @@
 | # | 게임 | 기획서 | 게임 id | 상태 |
 |---|---|---|---|---|
 | 1 | 풍선 터뜨리기 | [games/01-balloon-pop.md](games/01-balloon-pop.md) | `balloon` | 구현 |
-| 2 | 과일 받기 | [games/02-fruit-catch.md](games/02-fruit-catch.md) | `fruit` | 준비 중 |
+| 2 | 과일 받기 | [games/02-fruit-catch.md](games/02-fruit-catch.md) | `fruit` | 구현 |
 | 3 | 동물 짝 맞추기 | [games/03-animal-match.md](games/03-animal-match.md) | `memory` | 준비 중 |
 | 4 | 미로 탈출 | [games/04-maze-escape.md](games/04-maze-escape.md) | `maze` | 준비 중 |
 | 5 | 숫자 / 색깔 퀴즈 | [games/05-number-color-quiz.md](games/05-number-color-quiz.md) | `quiz` | 준비 중 |

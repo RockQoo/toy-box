@@ -22,7 +22,7 @@ public class BalloonRulesTests
     [Fact]
     public void BalloonsGetFasterEachPhase()
     {
-        var speeds = new[] { 0f, 10f, 20f, 25f }.Select(t => BalloonRules.RiseSpeed(t, BalloonStartSpeed.Normal)).ToArray();
+        var speeds = new[] { 0f, 10f, 20f, 25f }.Select(t => BalloonRules.RiseSpeed(t, StartSpeed.Normal)).ToArray();
         for (var i = 1; i < speeds.Length; i++)
             Assert.True(speeds[i] > speeds[i - 1]);
     }
@@ -30,9 +30,9 @@ public class BalloonRulesTests
     [Fact]
     public void StartSpeedScalesRiseSpeed()
     {
-        Assert.True(BalloonRules.RiseSpeed(0, BalloonStartSpeed.Slow) < BalloonRules.RiseSpeed(0, BalloonStartSpeed.Normal));
-        Assert.True(BalloonRules.RiseSpeed(0, BalloonStartSpeed.Fast) > BalloonRules.RiseSpeed(0, BalloonStartSpeed.Normal));
-        Assert.True(BalloonRules.SpawnInterval(0, BalloonStartSpeed.Fast) < BalloonRules.SpawnInterval(0, BalloonStartSpeed.Normal));
+        Assert.True(BalloonRules.RiseSpeed(0, StartSpeed.Slow) < BalloonRules.RiseSpeed(0, StartSpeed.Normal));
+        Assert.True(BalloonRules.RiseSpeed(0, StartSpeed.Fast) > BalloonRules.RiseSpeed(0, StartSpeed.Normal));
+        Assert.True(BalloonRules.SpawnInterval(0, StartSpeed.Fast) < BalloonRules.SpawnInterval(0, StartSpeed.Normal));
     }
 
     [Theory]

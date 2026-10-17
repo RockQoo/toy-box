@@ -32,13 +32,6 @@ public partial class BalloonGame : Node2D
         new Choice("랜덤", "res://assets/sprites/ui/star.png"),
     };
 
-    private static readonly IReadOnlyList<Choice> SpeedChoices = new[]
-    {
-        new Choice("느림", "res://assets/sprites/animal/turtle.png"),
-        new Choice("보통", "res://assets/sprites/animal/penguin.png"),
-        new Choice("빠름", "res://assets/sprites/animal/rabbit.png"),
-    };
-
     private static readonly string[] PhaseBanners = { "", "풍선이 많아져요!", "더 빨라졌어요!", "마지막이에요, 힘내요!" };
     private static readonly string[] Cheers = { "최고야!", "대단해!", "멋져요!", "잘한다!", "우와!" };
 
@@ -54,25 +47,18 @@ public partial class BalloonGame : Node2D
     private ScreenShake _shake = null!;
     private CanvasLayer _ui = null!;
     private Control _setup = null!;
-    private Control _hud = null!;
-    private Label _scoreLabel = null!;
-    private Label _timeLabel = null!;
-    private TimerBar _timerBar = null!;
-    private TextureRect _scoreIcon = null!;
-    private Control? _quitConfirm;
-    private Label _banner = null!;
+    private RoundHud _hud = null!;
     private Texture2D _popTexture = null!;
     private Texture2D _starTexture = null!;
 
     private int _colorChoice;
-    private BalloonStartSpeed _speed;
+    private StartSpeed _speed;
     private float _elapsed;
     private float _spawnTimer;
     private int _score;
     private int _streak;
     private float _lastPopTime = -10f;
     private int _phaseIndex;
-    private int _lastWholeSecond;
     private float _lastSpawnX = -1000f;
     private float _autoplayTimer;
 
@@ -102,7 +88,7 @@ public partial class BalloonGame : Node2D
         AddChild(_ui);
 
         _colorChoice = (int)App.I.GetSetting(SettingsSection, "color", RandomColor);
-        _speed = (BalloonStartSpeed)(int)App.I.GetSetting(SettingsSection, "speed", (int)BalloonStartSpeed.Normal);
+        _speed = (StartSpeed)(int)App.I.GetSetting(SettingsSection, "speed", (int)StartSpeed.Normal);
         _scenery.Kind = (SceneryKind)(int)App.I.GetSetting(SettingsSection, "scenery", (int)SceneryKind.Sky);
         _buddy.SetCharacter((int)App.I.GetSetting(SettingsSection, "buddy", 0));
 
@@ -114,11 +100,7 @@ public partial class BalloonGame : Node2D
         ShowSetup();
     }
 
-    public override void _ExitTree()
-    {
-        GetViewport().SizeChanged -= PlaceBuddy;
-        GetTree().Paused = false; // In case the scene changes while the quit question is open
-    }
+    public override void _ExitTree() => GetViewport().SizeChanged -= PlaceBuddy;
 
     private void PlaceBuddy() => _buddy.Position = new Vector2(ScreenSize.X - 110, ScreenSize.Y - 24);
 
@@ -166,10 +148,10 @@ public partial class BalloonGame : Node2D
         };
         body.AddChild(buddyRow);
 
-        var speedRow = ChoiceRow.Create("속도", SpeedChoices, (int)_speed);
+        var speedRow = ChoiceRow.Create("속도", Choice.Speeds, (int)_speed);
         speedRow.Selected += i =>
         {
-            _speed = (BalloonStartSpeed)i;
+            _speed = (StartSpeed)i;
             App.I.SetSetting(SettingsSection, "speed", i);
         };
         body.AddChild(speedRow);
@@ -204,7 +186,7 @@ public partial class BalloonGame : Node2D
     {
         var size = ScreenSize;
         var x = Mathf.Lerp(size.X * SetupAreaStart + 60, size.X - 60, (float)_rng.NextDouble());
-        SpawnBalloon(x, size.Y + 100, BalloonRules.RiseSpeed(0, BalloonStartSpeed.Normal) * size.Y * 0.8f);
+        SpawnBalloon(x, size.Y + 100, BalloonRules.RiseSpeed(0, StartSpeed.Normal) * size.Y * 0.8f);
     }
 
     // ---- Round ----
@@ -223,11 +205,8 @@ public partial class BalloonGame : Node2D
         _spawnTimer = 0.2f;
         _streak = 0;
         _phaseIndex = 0;
-        _lastWholeSecond = BalloonRules.SecondsLeft(0);
-        UpdateHud();
-        _timeLabel.AddThemeColorOverride("font_color", UiTheme.Ink);
-        _timerBar.Reset();
-        _scoreIcon.Texture = Ui.Tex(Balloon.Textures[_colorChoice == RandomColor ? _rng.Next(Balloon.Textures.Length) : _colorChoice]);
+        _hud.Reset();
+        _hud.ScoreIcon = Ui.Tex(Balloon.Textures[_colorChoice == RandomColor ? _rng.Next(Balloon.Textures.Length) : _colorChoice]);
         _hud.Visible = true;
         _state = State.Countdown;
         Audio.I.PlayMusic(Music.Play);
@@ -273,13 +252,13 @@ public partial class BalloonGame : Node2D
     private void UpdatePlaying(float dt)
     {
         _elapsed += dt;
-        _timerBar.Remaining = BalloonRules.PlaySeconds - _elapsed;
+        _hud.SetElapsed(_elapsed);
 
         var phase = BalloonRules.PhaseAt(_elapsed);
         if (phase.Index != _phaseIndex)
         {
             _phaseIndex = phase.Index;
-            ShowBanner(PhaseBanners[phase.Index]);
+            _hud.ShowBanner(PhaseBanners[phase.Index]);
             Audio.I.SetMusicTempo(1f + 0.05f * phase.Index);
         }
 
@@ -288,20 +267,6 @@ public partial class BalloonGame : Node2D
         {
             _spawnTimer += BalloonRules.SpawnInterval(_elapsed, _speed);
             SpawnRoundBalloon();
-        }
-
-        var secondsLeft = BalloonRules.SecondsLeft(_elapsed);
-        if (secondsLeft != _lastWholeSecond)
-        {
-            _lastWholeSecond = secondsLeft;
-            UpdateHud();
-            if (secondsLeft is > 0 and <= 5)
-            {
-                // Last seconds: a tick and a pulse, in orange (excitement, not alarm)
-                Audio.I.Tick(1.25f);
-                _timeLabel.AddThemeColorOverride("font_color", UiTheme.Orange);
-                Ui.Punch(_timeLabel, 0.3f);
-            }
         }
 
         if (App.I.Autoplay)
@@ -340,31 +305,11 @@ public partial class BalloonGame : Node2D
     {
         _state = State.Ending;
         _elapsed = BalloonRules.PlaySeconds;
-        _timerBar.Remaining = 0;
-        UpdateHud();
-        Audio.I.TimeUp();
-        Audio.I.DuckMusic(-12f);
         Audio.I.Whoosh();
         foreach (var b in _balloons)
             b.Release();
         _balloons.Clear();
-
-        var done = Ui.Label("끝!", 160, UiTheme.Yellow, 28, UiTheme.Ink);
-        done.HorizontalAlignment = HorizontalAlignment.Center;
-        done.VerticalAlignment = VerticalAlignment.Center;
-        done.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _ui.AddChild(done);
-        done.PivotOffset = ScreenSize / 2;
-        done.Scale = new Vector2(0.3f, 0.3f);
-        var tween = done.CreateTween();
-        tween.TweenProperty(done, "scale", Vector2.One, 0.4f).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
-        tween.TweenInterval(0.9f);
-        tween.TweenProperty(done, "modulate:a", 0f, 0.25f);
-        tween.TweenCallback(Callable.From(() =>
-        {
-            done.QueueFree();
-            ShowResult();
-        }));
+        _hud.ShowTimeUp(ShowResult);
     }
 
     private void ShowResult()
@@ -393,12 +338,7 @@ public partial class BalloonGame : Node2D
         }));
     }
 
-    private void CloseResult()
-    {
-        foreach (var child in _ui.GetChildren())
-            if (child is ResultPanel)
-                child.QueueFree();
-    }
+    private void CloseResult() => ResultPanel.CloseAll(_ui);
 
     private void ClearBalloons()
     {
@@ -449,10 +389,9 @@ public partial class BalloonGame : Node2D
             return; // Preview balloons on the setup screen: just for fun, no score
 
         _score++;
-        UpdateHud();
+        _hud.SetScore(_score, 0.35f);
         if (_colorChoice == RandomColor)
-            _scoreIcon.Texture = Ui.Tex(Balloon.Textures[balloon.ColorId]); // Random colors: show the last popped one
-        Ui.Punch(_scoreLabel, 0.35f);
+            _hud.ScoreIcon = Ui.Tex(Balloon.Textures[balloon.ColorId]); // Random colors: show the last popped one
         _buddy.Hop();
         _fxLayer.AddChild(new FloatingText
         {
@@ -496,7 +435,7 @@ public partial class BalloonGame : Node2D
         _shake.Add(5f);
         _fxLayer.AddChild(SpriteBurst.Create(_starTexture, pos, 10, 650f, 44f, 1.0f, _rng, 0.8f));
         _buddy.Say(Cheers[_rng.Next(Cheers.Length)]);
-        Ui.Punch(_scoreLabel, 0.6f);
+        Ui.Punch(_hud.ScoreLabel, 0.6f);
     }
 
     private void AutoplayStep(float dt)
@@ -520,120 +459,7 @@ public partial class BalloonGame : Node2D
 
     private void BuildHud()
     {
-        _hud = new Control { MouseFilter = Control.MouseFilterEnum.Ignore };
-        _hud.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _hud = RoundHud.Create(BalloonRules.PlaySeconds, Balloon.Textures[0]);
         _ui.AddChild(_hud);
-
-        // Full-screen margin + column: top bar (score, quit ... time), banner, flexible space
-        var frame = new MarginContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-        frame.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        foreach (var side in new[] { "left", "right", "top", "bottom" })
-            frame.AddThemeConstantOverride($"margin_{side}", 18);
-        _hud.AddChild(frame);
-        var column = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-        frame.AddChild(column);
-
-        var top = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-        column.AddChild(top);
-
-        var scorePanel = Ui.Panel(Colors.White, 12, 4);
-        var scoreRow = new HBoxContainer();
-        scoreRow.AddThemeConstantOverride("separation", 10);
-        _scoreIcon = Ui.Icon(Balloon.Textures[0], 48);
-        scoreRow.AddChild(_scoreIcon);
-        _scoreLabel = Ui.Label("점수 0", 40, UiTheme.Ink);
-        _scoreLabel.CustomMinimumSize = new Vector2(150, 0);
-        scoreRow.AddChild(_scoreLabel);
-        scorePanel.AddChild(scoreRow);
-        top.AddChild(scorePanel);
-
-        // Up here, away from where balloons are popped, and it asks before quitting
-        top.AddChild(Ui.Spacer(0, 14));
-        var quit = Ui.Button("그만하기", AskQuit, null, 22, null, new Vector2(130, 56));
-        quit.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
-        top.AddChild(quit);
-
-        top.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Ignore });
-
-        var timePanel = Ui.Panel(Colors.White, 12, 4);
-        var timeColumn = new VBoxContainer();
-        timeColumn.AddThemeConstantOverride("separation", 4);
-        _timeLabel = Ui.Label("남은 시간 30초", 40, UiTheme.Ink);
-        _timeLabel.CustomMinimumSize = new Vector2(270, 0);
-        _timeLabel.HorizontalAlignment = HorizontalAlignment.Center;
-        timeColumn.AddChild(_timeLabel);
-        _timerBar = TimerBar.Create(BalloonRules.PlaySeconds, new Vector2(270, 26));
-        timeColumn.AddChild(_timerBar);
-        timePanel.AddChild(timeColumn);
-        top.AddChild(timePanel);
-
-        _banner = Ui.Label("", 44, Colors.White, 14, UiTheme.Pink);
-        _banner.HorizontalAlignment = HorizontalAlignment.Center;
-        _banner.Modulate = Colors.Transparent;
-        column.AddChild(Ui.Spacer(30));
-        column.AddChild(_banner);
-
-    }
-
-    /// <summary>"정말 그만할까요?" The round is paused while the question is open.</summary>
-    private void AskQuit()
-    {
-        if (_quitConfirm is not null)
-            return;
-        GetTree().Paused = true;
-
-        var root = new Control { ProcessMode = ProcessModeEnum.Always, MouseFilter = Control.MouseFilterEnum.Ignore };
-        root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        root.AddChild(Ui.Backdrop());
-        var panel = Ui.Panel(margin: 28);
-        var body = new VBoxContainer();
-        body.AddThemeConstantOverride("separation", 20);
-        panel.AddChild(body);
-        var question = Ui.Label("정말 그만할까요?", 44, UiTheme.Ink);
-        question.HorizontalAlignment = HorizontalAlignment.Center;
-        body.AddChild(question);
-        var buttons = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
-        buttons.AddThemeConstantOverride("separation", 20);
-        // "Keep playing" is the big, bright choice
-        buttons.AddChild(Ui.Button("계속하기", CloseQuit, UiTheme.Green, 34, Ui.Tex("res://assets/sprites/ui/play.png"),
-            new Vector2(260, 84)));
-        buttons.AddChild(Ui.Button("그만하기", () =>
-        {
-            GetTree().Paused = false;
-            App.I.GoToMainMenu();
-        }, null, 28, null, new Vector2(180, 84)));
-        body.AddChild(buttons);
-        root.AddChild(Ui.Centered(panel));
-        _ui.AddChild(root);
-        _quitConfirm = root;
-        Callable.From(() => Ui.PopIn(panel)).CallDeferred();
-    }
-
-    private void CloseQuit()
-    {
-        _quitConfirm?.QueueFree();
-        _quitConfirm = null;
-        GetTree().Paused = false;
-    }
-
-    private void UpdateHud()
-    {
-        _scoreLabel.Text = $"점수 {_score}";
-        _timeLabel.Text = $"남은 시간 {BalloonRules.SecondsLeft(_elapsed)}초";
-    }
-
-    private void ShowBanner(string text)
-    {
-        if (text.Length == 0)
-            return;
-        Audio.I.Whoosh();
-        _banner.Text = text;
-        _banner.PivotOffset = _banner.Size / 2;
-        _banner.Modulate = Colors.White;
-        _banner.Scale = new Vector2(0.5f, 0.5f);
-        var tween = _banner.CreateTween();
-        tween.TweenProperty(_banner, "scale", Vector2.One, 0.3f).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
-        tween.TweenInterval(1.1f);
-        tween.TweenProperty(_banner, "modulate:a", 0f, 0.3f);
     }
 }
