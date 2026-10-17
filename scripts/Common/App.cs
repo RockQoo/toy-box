@@ -26,10 +26,19 @@ public partial class App : Node
     /// <summary>Dev flag (`-- --autoplay`): games play themselves, so frames can be captured without input.</summary>
     public bool Autoplay { get; private set; }
 
-    public string LastName
+    /// <summary>Names used on the result screen, newest first (at most <see cref="RecentNames.Capacity"/>).</summary>
+    public string[] RecentNames =>
+        Core.RecentNames.Load((string[])GetSetting("player", "recent_names", Array.Empty<string>()),
+            (string)GetSetting("player", "last_name", ""),
+            GameCatalog.All.SelectMany(g => Board(g.Id).Entries));
+
+    /// <summary>Remembers a name as the most recent one. Returns the cleaned name that was stored.</summary>
+    public string RememberName(string name)
     {
-        get => (string)GetSetting("player", "last_name", "");
-        set => SetSetting("player", "last_name", value);
+        var list = Core.RecentNames.Push(RecentNames, name);
+        _settings.SetValue("player", "last_name", list[0]); // Kept for older builds reading the same file
+        SetSetting("player", "recent_names", list);
+        return list[0];
     }
 
     public override void _EnterTree()

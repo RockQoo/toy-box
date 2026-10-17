@@ -28,11 +28,12 @@ public sealed record ResultButton(string Text, Color Color, Action OnPressed, st
 /// <summary>
 /// The shared result screen: count-up of the result → best-record celebration → name entry if it made the top 10
 /// → ranking with the new row highlighted → next-action buttons. Add it on a CanvasLayer; it fills the screen.
+/// Name entry shows the recent names as big one-tap buttons; typing is behind a "새 이름" button (or shown
+/// directly when there are no recent names yet).
 /// </summary>
 public partial class ResultPanel : Control
 {
-    private const int MaxNameLength = 8;
-    private const string DefaultName = "친구";
+    private static readonly Color[] NameColors = { UiTheme.Blue, UiTheme.Pink, UiTheme.Purple };
 
     private ResultSpec _spec = null!;
     private Label _value = null!;
@@ -40,11 +41,17 @@ public partial class ResultPanel : Control
     private Label _badge = null!;
     private Label _message = null!;
     private VBoxContainer _nameBox = null!;
+    private Label _namePrompt = null!;
+    private GridContainer _namePicks = null!;
+    private HBoxContainer _nameTyping = null!;
     private LineEdit _nameEdit = null!;
+    private string[] _recentNames = System.Array.Empty<string>();
+    private int _rank = -1;
     private HBoxContainer _buttons = null!;
     private RankingList _ranking = null!;
     private Control _confettiHost = null!;
     private bool _submitted;
+    private bool _typedSubmitPending;
 
     public static ResultPanel Create(ResultSpec spec)
     {
@@ -132,30 +139,70 @@ public partial class ResultPanel : Control
 
     private VBoxContainer BuildNameEntry()
     {
+        _recentNames = App.I.RecentNames;
         var box = new VBoxContainer();
-        box.AddThemeConstantOverride("separation", 8);
-        var prompt = Ui.Label("이름을 적어 주세요!", 28, UiTheme.Ink);
-        prompt.Name = "Prompt";
-        prompt.HorizontalAlignment = HorizontalAlignment.Center;
-        box.AddChild(prompt);
+        box.AddThemeConstantOverride("separation", 10);
+        _namePrompt = Ui.Label("", 28, UiTheme.Ink);
+        _namePrompt.HorizontalAlignment = HorizontalAlignment.Center;
+        box.AddChild(_namePrompt);
 
-        var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
-        row.AddThemeConstantOverride("separation", 10);
+        // One-tap recent names (2 columns), then "새 이름" which opens the keyboard row
+        _namePicks = new GridContainer { Columns = 2, SizeFlagsHorizontal = SizeFlags.ShrinkCenter };
+        _namePicks.AddThemeConstantOverride("h_separation", 12);
+        _namePicks.AddThemeConstantOverride("v_separation", 10);
+        for (var i = 0; i < _recentNames.Length; i++)
+        {
+            var name = _recentNames[i];
+            var pick = Ui.Button(name, () => SubmitName(name), NameColors[i % NameColors.Length], 30, null, new Vector2(240, 76));
+            pick.ClipText = true;
+            pick.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+            _namePicks.AddChild(pick);
+        }
+        _namePicks.AddChild(Ui.Button("새 이름", ShowTyping, null, 28, null, new Vector2(240, 76)));
+        box.AddChild(_namePicks);
+
+        _nameTyping = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center, Visible = false };
+        _nameTyping.AddThemeConstantOverride("separation", 10);
+        // No select-all-on-focus and no prefilled text: with the Korean IME, the composing syllable is kept apart
+        // from Text until it is committed, so the field starts empty and is committed explicitly on submit.
         _nameEdit = new LineEdit
         {
-            Text = App.I.LastName,
-            PlaceholderText = DefaultName,
-            MaxLength = MaxNameLength,
-            CustomMinimumSize = new Vector2(280, 72),
+            PlaceholderText = RecentNames.DefaultName,
+            MaxLength = RecentNames.MaxLength,
+            CustomMinimumSize = new Vector2(_recentNames.Length > 0 ? 230 : 300, 72),
             Alignment = HorizontalAlignment.Center,
-            SelectAllOnFocus = true,
         };
         _nameEdit.AddThemeFontSizeOverride("font_size", 32);
-        _nameEdit.TextSubmitted += _ => SubmitName();
-        row.AddChild(_nameEdit);
-        row.AddChild(Ui.Button("확인", SubmitName, UiTheme.Green, 28, null, new Vector2(120, 72)));
-        box.AddChild(row);
+        _nameEdit.TextSubmitted += _ => SubmitTyped();
+        _nameTyping.AddChild(_nameEdit);
+        _nameTyping.AddChild(Ui.Button("확인", SubmitTyped, UiTheme.Green, 28, null, new Vector2(120, 72)));
+        if (_recentNames.Length > 0)
+            _nameTyping.AddChild(Ui.Button("뒤로", ShowPicks, null, 24, null, new Vector2(100, 72)));
+        box.AddChild(_nameTyping);
         return box;
+    }
+
+    private void ShowPicks()
+    {
+        _nameEdit.CancelIme();
+        _nameEdit.ReleaseFocus();
+        _nameTyping.Visible = false;
+        _namePicks.Visible = true;
+        _namePrompt.Text = $"{_rank + 1}등이에요! 누구예요?";
+    }
+
+    private void ShowTyping()
+    {
+        _namePicks.Visible = false;
+        _nameTyping.Visible = true;
+        _nameEdit.Text = "";
+        _namePrompt.Text = $"{_rank + 1}등이에요! 이름을 적어 주세요";
+        // Focus after layout so the IME window is placed at the caret
+        Callable.From(() =>
+        {
+            _nameEdit.GrabFocus();
+            _nameEdit.CaretColumn = _nameEdit.Text.Length;
+        }).CallDeferred();
     }
 
     private async void RunSequence()
@@ -200,14 +247,17 @@ public partial class ResultPanel : Control
                 Audio.I.Cheer();
                 _confettiHost.AddChild(Confetti.Create(GetViewportRect().Size, 35));
             }
-            _nameBox.GetNode<Label>("Prompt").Text = $"{rank + 1}등이에요! 이름을 적어 주세요";
+            _rank = rank;
             _nameBox.Visible = true;
+            if (_recentNames.Length > 0)
+                ShowPicks();
+            else
+                ShowTyping();
             Ui.PopIn(_nameBox);
-            _nameEdit.GrabFocus();
             if (App.I.Autoplay)
             {
                 await Wait(0.8f);
-                SubmitName();
+                SubmitName(_recentNames.Length > 0 ? _recentNames[0] : "");
             }
         }
         else
@@ -217,18 +267,33 @@ public partial class ResultPanel : Control
         }
     }
 
-    private void SubmitName()
+    /// <summary>
+    /// Submits the typed name. With the Korean IME the syllable being composed is not part of
+    /// <see cref="LineEdit.Text"/> yet (it was dropped before, so "다온" was saved as "다"). Waiting a frame lets
+    /// the IME's commit (Enter) arrive as a character first; <see cref="LineEdit.ApplyIme"/> then commits whatever
+    /// is still composing (e.g. when 확인 is clicked mid-syllable).
+    /// </summary>
+    private async void SubmitTyped()
+    {
+        if (_submitted || _typedSubmitPending)
+            return;
+        _typedSubmitPending = true;
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        _typedSubmitPending = false;
+        if (_nameEdit.HasImeText())
+            _nameEdit.ApplyIme();
+        SubmitName(_nameEdit.Text);
+    }
+
+    private void SubmitName(string typed)
     {
         if (_submitted)
             return;
         _submitted = true;
-        var name = _nameEdit.Text.Trim();
-        if (name.Length == 0)
-            name = DefaultName;
-        if (name.Length > MaxNameLength)
-            name = name[..MaxNameLength];
-        App.I.LastName = name;
+        _nameEdit.CancelIme();
         _nameEdit.ReleaseFocus();
+        var name = App.I.RememberName(typed);
 
         var rank = App.I.SubmitRecord(_spec.Game.Id, _spec.Entry with { Name = name });
         _nameBox.Visible = false;

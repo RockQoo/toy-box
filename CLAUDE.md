@@ -32,20 +32,21 @@ Godot_v4.7.2-stable_mono_win64_console.exe --path . --write-movie <dir>/f.png --
 ```
 
 개발용 인자(`--` 뒤): `--game=<id>`(메뉴를 건너뛰고 바로 그 게임), `--autoplay`(게임이 스스로 플레이하고 이름 입력도 자동, 카운트다운 단축), `--open=records` / `--open=settings`(메인 메뉴에서 팝업을 연 채 시작).
-자동 플레이로 랭킹이 쌓이므로 테스트 후 기록이 신경 쓰이면 `%APPDATA%/Godot/app_userdata/Toy Box/records.json`을 지운다.
+자동 플레이로 랭킹과 최근 이름이 쌓인다(`%APPDATA%/Godot/app_userdata/Toy Box/records.json`, `settings.cfg`). **이 파일에는 가족이 실제로 플레이한 기록이 들어 있으므로 지우지 말고**, 테스트 전에 복사해 두었다가 끝나면 되돌린다.
 
 ## 구조
 
 - **`scripts/Core/`**: Godot에 의존하지 않는 순수 C#(`using Godot` 금지). 테스트 프로젝트가 이 폴더 소스를 직접 링크해 엔진 없이 테스트한다. 규칙·판정·수치 로직은 여기에 둔다.
   - `Leaderboard`/`RecordBook`: 게임별 Top 10과 JSON 직렬화. 정렬은 `RankOrder`(점수 높은 순 / 시간 짧은 순 / 점수 후 시간). 동점이면 먼저 세운 기록이 위.
+  - `RecentNames`: 결과 화면 이름 버튼에 쓰는 최근 이름 목록(최대 3개, 최신순, 중복 없음). 예전 설정은 `last_name`과 기록의 이름으로 채운다.
   - `BalloonRules`: 풍선 게임 난이도 표(기획서 표 그대로). 속도는 "화면 높이/초" 단위.
   - `SfxSynth`: 효과음과 BGM을 코드로 합성한다(오실레이터, 스윕, 노이즈, 감쇠; BGM은 `"C5:1 E5:0.5 ..."` 음표 문자열). 사운드 파일이 없다.
 - **`scripts/Common/`**: 모든 게임이 공유하는 Godot 코드.
-  - `App`(autoload): 설정(`user://settings.cfg`), 기록(`user://records.json`), UI 테마 적용, 페이드 씬 전환(`App.I.GoTo`), 개발용 인자 처리.
-  - `Audio`(autoload): 합성음을 `AudioStreamWav`로 바꿔 16개 플레이어로 돌려 재생. BGM/SFX 버스를 런타임에 만들어 설정 볼륨을 적용.
+  - `App`(autoload): 설정(`user://settings.cfg`, 최근 이름 `RecentNames`/`RememberName`), 기록(`user://records.json`), UI 테마 적용, 페이드 씬 전환(`App.I.GoTo`), 개발용 인자 처리.
+  - `Audio`(autoload): 합성음을 `AudioStreamWav`로 바꿔 16개 플레이어로 돌려 재생. BGM/SFX 버스를 런타임에 만들어 설정 볼륨을 적용. `PlayMusic`은 같은 곡이면 아무것도 안 하므로, 판을 시작할 때 `ResetMusic()`으로 결과 화면의 덕킹과 빨라진 템포를 되돌린다.
   - `GameCatalog`: 게임 목록(id, 제목, 아이콘, 씬 경로, 랭킹 정렬, 표시 형식). **`ScenePath`가 null이면 메뉴에 "준비 중"**. 새 게임은 씬을 만들고 여기에 경로를 넣으면 메뉴·기록 화면에 연결된다.
-  - `Ui/`: `UiTheme`(색, 시스템 한글 굵은 글꼴, 테마), `Ui`(버튼·라벨·패널 팩토리, PopIn/Punch/Wiggle 트윈), `ResultPanel`(공통 결과 화면: count-up → 최고 기록 축하 → Top 10이면 이름 입력 → 랭킹 강조 → 버튼), `RankingList`, `Countdown`(3·2·1·시작!), `ChoiceRow`(꾸미기 선택 칩).
-  - `Fx/`: `Burst`, `FloatingText`(color-blast에서 가져옴), `SpriteBurst`(별 튀기기), `Confetti`, `Ripple`(빈 곳 탭 표시), `ScreenShake`.
+  - `Ui/`: `UiTheme`(색, 시스템 한글 굵은 글꼴, 테마), `Ui`(버튼·라벨·패널 팩토리, PopIn/Punch/Wiggle 트윈), `ResultPanel`(공통 결과 화면: count-up → 최고 기록 축하 → Top 10이면 이름 입력 → 랭킹 강조 → 버튼. 이름은 최근 이름 버튼을 한 번 누르거나 "새 이름"으로 키보드 입력. 한글 IME의 조합 중인 글자는 `LineEdit.Text`에 없으므로 제출 전에 `ApplyIme()`로 확정한다), `RankingList`, `Countdown`(3·2·1·시작!, 일시정지 중에는 멈춤), `TimerBar`(남은 시간 막대: `Create(전체 초)` → 매 프레임 `Remaining` 설정, 판 시작 때 `Reset()`, 마지막 5초 주황색. 시간 제한 게임 공용), `ChoiceRow`(꾸미기 선택 칩).
+  - `Fx/`: `Burst`, `FloatingText`(color-blast에서 가져옴), `SpriteBurst`(별 튀기기), `Shards`(고무 조각처럼 돌며 떨어지는 조각), `Confetti`, `Ripple`(빈 곳 탭 표시), `ScreenShake`.
   - `Scenery`(배경: 하늘/공원/우주/바다, 공원만 이미지, 나머지는 코드로 그림), `Buddy`(응원 캐릭터: 통통 튀기, 말풍선).
 - **`scripts/Games/<Game>/`**: 게임별 코드. 씬(`scenes/games/*.tscn`)에는 스크립트가 붙은 루트 노드 하나만 있고 나머지 노드는 `_Ready`에서 코드로 만든다(color-blast와 같은 방식). UI는 CanvasLayer에, 게임 오브젝트는 `World` Node2D 아래에 둔다(흔들림 대상).
 - 입력: `emulate_touch_from_mouse`가 켜져 있어 마우스 클릭도 `InputEventScreenTouch`로 들어온다. 게임 입력은 터치 이벤트만 처리한다(마우스 이벤트까지 처리하면 두 번 들어옴).

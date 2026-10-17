@@ -34,7 +34,8 @@ public partial class Countdown : Control
         {
             Show($"{n}", colors[3 - n]);
             Audio.I.Tick(1f + (3 - n) * 0.12f);
-            await ToSignal(GetTree().CreateTimer(App.I.Autoplay ? 0.3f : 1f), SceneTreeTimer.SignalName.Timeout);
+            // Not processAlways: the count holds while the game is paused (quit question)
+            await ToSignal(GetTree().CreateTimer(App.I.Autoplay ? 0.3f : 1f, processAlways: false), SceneTreeTimer.SignalName.Timeout);
         }
         Show("시작!", UiTheme.Green);
         Audio.I.Go();

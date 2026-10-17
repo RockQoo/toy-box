@@ -15,13 +15,16 @@ public partial class Audio : Node
     private const int Voices = 16;
     private const string BgmBus = "BGM";
     private const string SfxBus = "SFX";
+    private const float MusicDb = -8f;
 
     public static Audio I { get; private set; } = null!;
 
     private readonly AudioStreamPlayer[] _players = new AudioStreamPlayer[Voices];
     private readonly Random _rng = new();
     private AudioStreamPlayer _bgm = null!;
-    private Tween? _bgmTween;
+    private Tween? _bgmTween;   // Track switch (fade out → swap → fade in)
+    private Tween? _duckTween;
+    private Tween? _tempoTween;
     private int _next;
     private Music _music;
 
@@ -105,6 +108,8 @@ public partial class Audio : Node
         if (music == _music)
             return;
         _music = music;
+        _duckTween?.Kill();
+        _tempoTween?.Kill();
         _bgmTween?.Kill();
         _bgmTween = CreateTween();
         if (_bgm.Playing)
@@ -120,19 +125,39 @@ public partial class Audio : Node
             _bgm.Play();
         }));
         if (music != Music.None)
-            _bgmTween.TweenProperty(_bgm, "volume_db", -8f, 0.4f);
+            _bgmTween.TweenProperty(_bgm, "volume_db", MusicDb, 0.4f);
     }
 
     /// <summary>Speeds the music up (and raises its pitch) to make later stages feel livelier.</summary>
     public void SetMusicTempo(float scale)
     {
-        CreateTween().TweenProperty(_bgm, "pitch_scale", scale, 0.6f);
+        _tempoTween?.Kill();
+        _tempoTween = CreateTween();
+        _tempoTween.TweenProperty(_bgm, "pitch_scale", scale, 0.6f);
     }
 
     /// <summary>Dips the music, e.g. under the result fanfare. 0 dB restores the normal level.</summary>
     public void DuckMusic(float db, float time = 0.3f)
     {
-        CreateTween().TweenProperty(_bgm, "volume_db", -8f + db, time);
+        _duckTween?.Kill();
+        _duckTween = CreateTween();
+        _duckTween.TweenProperty(_bgm, "volume_db", MusicDb + db, time);
+    }
+
+    /// <summary>
+    /// Back to normal volume and tempo. <see cref="PlayMusic"/> keeps a track that is already playing as it is,
+    /// so a game calls this when a new round starts (e.g. "다시 하기" after the result screen ducked the music).
+    /// </summary>
+    public void ResetMusic()
+    {
+        _duckTween?.Kill();
+        _tempoTween?.Kill();
+        if (_bgmTween?.IsRunning() == true)
+            return; // A track switch is in progress; it ends at normal volume and tempo by itself
+        var tween = CreateTween().SetParallel();
+        tween.TweenProperty(_bgm, "volume_db", MusicDb, 0.3f);
+        tween.TweenProperty(_bgm, "pitch_scale", 1f, 0.3f);
+        _duckTween = tween;
     }
 
     // ---- Helpers ----
