@@ -1,0 +1,7 @@
+.godot/
+.vs/
+.vscode/
+bin/
+obj/
+*.user
+export_presets.cfg
