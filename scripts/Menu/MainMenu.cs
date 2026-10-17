@@ -40,6 +40,9 @@ public partial class MainMenu : Control
         bottom.AddThemeConstantOverride("separation", 20);
         bottom.AddChild(Ui.Button("기록", ShowRecords, UiTheme.Purple, 30, Ui.Tex("res://assets/sprites/ui/star.png"), new Vector2(200, 76)));
         bottom.AddChild(Ui.Button("설정", ShowSettings, UiTheme.Blue, 30, null, new Vector2(200, 76)));
+        // Phones close apps with the system back/home gesture; a quit button there is unusual
+        if (!OS.HasFeature("mobile"))
+            bottom.AddChild(Ui.Button("나가기", ShowQuit, null, 30, null, new Vector2(200, 76)));
         root.AddChild(bottom);
 
         _popupLayer = new Control { MouseFilter = MouseFilterEnum.Ignore };
@@ -56,6 +59,8 @@ public partial class MainMenu : Control
             ShowRecords(open.Contains(':') ? open[(open.IndexOf(':') + 1)..] : null);
         else if (args.Contains("--open=settings"))
             ShowSettings();
+        else if (args.Contains("--open=quit"))
+            ShowQuit();
     }
 
     private void AnimateIn(Godot.Collections.Array<Control> cards)
@@ -155,6 +160,23 @@ public partial class MainMenu : Control
         _popupLayer.AddChild(root);
         Callable.From(() => Ui.PopIn(panel)).CallDeferred();
         return (root, body);
+    }
+
+    /// <summary>"토이 박스를 끝낼까요?" — asked once so a child tapping around does not close the app.</summary>
+    private void ShowQuit()
+    {
+        var (popup, body) = OpenPopup("나가기");
+        var question = Ui.Label("토이 박스를 끝낼까요?", 34, UiTheme.Ink);
+        question.HorizontalAlignment = HorizontalAlignment.Center;
+        body.AddChild(question);
+        body.AddChild(Ui.Spacer(6));
+
+        var buttons = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        buttons.AddThemeConstantOverride("separation", 20);
+        // The safe choice is the big green one, like the in-game quit question
+        buttons.AddChild(Ui.Button("계속 놀기", popup.QueueFree, UiTheme.Green, 30, null, new Vector2(220, 80)));
+        buttons.AddChild(Ui.Button("끝내기", () => GetTree().Quit(), null, 28, null, new Vector2(180, 80)));
+        body.AddChild(buttons);
     }
 
     private static Button CloseButton(Control popup) =>
