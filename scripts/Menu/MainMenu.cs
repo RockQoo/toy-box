@@ -248,6 +248,14 @@ public partial class MainMenu : Control
         body.AddChild(VolumeRow("배경음악", Audio.I.BgmVolume, v => Audio.I.BgmVolume = v, null));
         body.AddChild(VolumeRow("효과음", Audio.I.SfxVolume, v => Audio.I.SfxVolume = v, Audio.I.Click));
 
+        if (!OS.HasFeature("mobile"))
+        {
+            var sizes = App.WindowSizes.Select(s => new Choice($"{s.X}×{s.Y}")).Append(new Choice("전체 화면")).ToList();
+            var screen = ChoiceRow.Create("화면", sizes, App.I.ResolutionIndex, 160, chipHeight: 70);
+            screen.Selected += App.I.ApplyResolution;
+            body.AddChild(screen);
+        }
+
         body.AddChild(Ui.Spacer(10));
         var armed = false;
         Button clear = null!;

@@ -64,11 +64,53 @@ public partial class App : Node
         _fade.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         layer.AddChild(_fade);
 
+        ApplyResolution(ResolutionIndex);
+
         var args = OS.GetCmdlineUserArgs();
         Autoplay = args.Contains("--autoplay");
         var game = args.FirstOrDefault(a => a.StartsWith("--game="))?["--game=".Length..];
         if (game is not null && GameCatalog.Find(game)?.ScenePath is { } path)
             CallDeferred(MethodName.GoTo, path);
+    }
+
+    // ---- Display (PC only) ----
+
+    /// <summary>Window sizes offered in settings. The index after the last one means fullscreen.</summary>
+    public static readonly Vector2I[] WindowSizes = { new(1280, 720), new(1600, 900), new(1920, 1080) };
+    public static int FullscreenIndex => WindowSizes.Length;
+
+    /// <summary>False on phones and when there is no real window (headless, --write-movie), where the setting is ignored.</summary>
+    public static bool CanChangeResolution =>
+        !OS.HasFeature("mobile") && DisplayServer.GetName() != "headless" && Engine.GetWriteMoviePath() == "";
+
+    public int ResolutionIndex => Mathf.Clamp((int)GetSetting("display", "resolution", 0), 0, FullscreenIndex);
+
+    /// <summary>Saves and applies a window size or fullscreen. Windows larger than the screen are shrunk to fit and centered.</summary>
+    public void ApplyResolution(int index)
+    {
+        index = Mathf.Clamp(index, 0, FullscreenIndex);
+        if ((int)GetSetting("display", "resolution", 0) != index)
+            SetSetting("display", "resolution", index);
+        if (!CanChangeResolution)
+            return;
+
+        if (index == FullscreenIndex)
+        {
+            DisplayServer.WindowSetMode(DisplayServer.WindowMode.Fullscreen);
+            return;
+        }
+        DisplayServer.WindowSetMode(DisplayServer.WindowMode.Windowed);
+        var screen = DisplayServer.WindowGetCurrentScreen();
+        var usable = DisplayServer.ScreenGetUsableRect(screen);
+        var size = WindowSizes[index];
+        if (size.X > usable.Size.X || size.Y > usable.Size.Y)
+        {
+            // Keep 16:9 while fitting inside the usable area (taskbar excluded)
+            var scale = Mathf.Min(usable.Size.X / (float)size.X, usable.Size.Y / (float)size.Y) * 0.95f;
+            size = new Vector2I((int)(size.X * scale), (int)(size.Y * scale));
+        }
+        DisplayServer.WindowSetSize(size);
+        DisplayServer.WindowSetPosition(usable.Position + (usable.Size - size) / 2);
     }
 
     /// <summary>Changes scene with a short white fade. Input is blocked during the transition.</summary>
