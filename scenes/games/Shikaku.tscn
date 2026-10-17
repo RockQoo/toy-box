@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Games/Shikaku/ShikakuGame.cs" id="1_main"]
+
+[node name="ShikakuGame" type="Node2D"]
+script = ExtResource("1_main")

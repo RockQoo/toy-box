@@ -12,7 +12,7 @@ Toy Box(화면에 보이는 이름은 **"다온이 놀이터"**, `App.DisplayNam
 구조와 연출 방식은 `C:\Work\Projects\color-blast`(같은 사용자의 이전 프로젝트)를 참고해 만들었다.
 
 - 기획서: `docs/GDD.md`(공통 사항, 게임 목록, 확정된 결정) + `docs/games/NN-<id>.md`(게임별). 게임을 추가하면 게임별 파일을 새로 만들고 GDD.md 목록에 추가한다.
-- 구현된 게임: 6개 전부(풍선 터뜨리기, 과일 받기, 숫자 / 색깔 퀴즈, 동물 짝 맞추기, 미로 탈출, 공룡 점프). 새 게임을 더하면 `GameCatalog`에 넣는다(`ScenePath`가 null이면 메뉴에 "준비 중").
+- 구현된 게임: 처음 6개(풍선 터뜨리기, 과일 받기, 숫자 / 색깔 퀴즈, 동물 짝 맞추기, 미로 탈출, 공룡 점프)와 새 게임 숫자 합치기(`merge`), 애벌레 냠냠(`snake`), 아기새 날기(`flappy`), 벽돌깨기(`breakout`), 과일 맞추기(`match3`), 공 쏘기 벽돌깨기(`swipe`), 방울 쏘기(`bubble`), 블록 쌓기(`blocks`), 그림 스도쿠(`sudoku`), 네모 나누기(`shikaku`), 상자 밀기(`pushbox`), 하늘 비행 모험(`flight`). 새 게임 7~18번은 `docs/games/07`~`18` 기획서와 `docs/GDD.md` 표(상태 "기획"/"구현")를 따라 **한 번에 하나씩** 만든다(규칙 `scripts/Core/<X>Rules.cs`+테스트 → `scripts/Games/<X>/` → `scenes/games/<X>.tscn` → `GameCatalog`, `MergeGame`이 가장 최근 예시). 새 게임을 더하면 `GameCatalog`에 넣는다(`ScenePath`가 null이면 메뉴에 "준비 중", 기록 탭 이름이 겹치면 `Short`). 메인 메뉴는 6개씩 페이지로 넘긴다.
 - 아이용 원칙: 감점, 실패 연출, 붉은 경고를 쓰지 않는다. 오답은 다시 고를 수 있게 하고, 시간이 갈수록 화면이 신나지는 방향으로 만든다.
 
 ## 명령어
@@ -26,7 +26,7 @@ dotnet test tests/ToyBox.Tests --filter "FullyQualifiedName~LeaderboardTests"   
 Godot_v4.7.2-stable_mono_win64_console.exe --path . -e                      # 에디터
 Godot_v4.7.2-stable_mono_win64_console.exe --path .                         # 실행
 Godot_v4.7.2-stable_mono_win64_console.exe --headless --path . --import     # 리소스 추가 후 .godot 캐시 갱신
-Godot_v4.7.2-stable_mono_win64_console.exe --headless --path . --quit-after 600 -- --game=balloon --autoplay   # 런타임 오류 스모크 테스트 (과일: --game=fruit, 퀴즈·짝 맞추기·미로·공룡: --game=quiz|memory|maze|dino --quit-after 8000)
+Godot_v4.7.2-stable_mono_win64_console.exe --headless --path . --quit-after 600 -- --game=balloon --autoplay   # 런타임 오류 스모크 테스트 (과일: --game=fruit, 퀴즈·짝 맞추기·미로·공룡·숫자 합치기·애벌레·아기새·벽돌깨기·과일 맞추기·공 쏘기·방울 쏘기·블록 쌓기·그림 스도쿠·네모 나누기·상자 밀기·하늘 비행: --game=quiz|memory|maze|dino|merge|snake|flappy|breakout|match3|swipe|bubble|blocks|sudoku|shikaku|pushbox|flight --quit-after 8000)
 # 화면 확인: 프레임을 PNG로 저장(.wav도 함께 저장됨). 출력 경로는 프로젝트 밖(스크래치)으로
 Godot_v4.7.2-stable_mono_win64_console.exe --path . --write-movie <dir>/f.png --fixed-fps 10 --quit-after 400 -- --game=balloon --autoplay
 # 릴리즈 빌드(Windows): build/windows/ToyBox.exe (+ data_ToyBox_windows_x86_64 폴더, 함께 배포). build/는 git 제외
@@ -66,6 +66,7 @@ Godot_v4.7.2-stable_mono_win64_console.exe --headless --path . --export-release 
 - `art-source/`: 받은 원본 스프라이트 시트(`.gdignore`로 Godot import 제외). 시트 한 장에 여러 그림이 있다.
 - `assets/sprites/<분류>/<이름>.png`: 시트를 투명 영역 기준으로 잘라 60% 크기로 줄인 개별 이미지. `assets/backgrounds/sky.png`: 하늘 배경(1280x720).
 - 시트를 다시 자를 때는 System.Drawing으로 연결 영역을 나누는 방식으로 했다(Python 없음). 동물 시트 첫 줄(사자·코끼리·펭귄)은 카드가 붙어 있어 열 경계로 나눴다.
+- **새 리소스 요청·검수·자르기·소리 구하기는 `docs/asset-pipeline.md`**(노하우와 작업 일지)를 따른다. 도구는 `tools/asset/`(`cut.ps1` 시트 자르기, `montage.ps1` 모아 보기, `oggdur.ps1` 소리 길이, `build_sfx_page.sh` 효과음 듣기 페이지). ChatGPT 그림 원본은 `art-source/chatgpt/sheet_NN_*.png`, 요청 프롬프트는 `docs/Daoni_ChatGPT_리소스요청프롬프트.md`. 소리는 사용자가 Pixabay에서 받아 `art-source/sounds/pixabay/`에 `목록.md`의 파일 이름대로 넣는다(자동 다운로드 403, Kenney 후보는 사용자가 마음에 들어 하지 않아 지움). 받으면 길이·앞 무음을 확인해 `assets/sounds/`로 옮기고, 없는 소리는 합성음을 쓴다.
 
 ## 검토
 

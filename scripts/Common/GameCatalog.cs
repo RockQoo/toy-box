@@ -17,8 +17,12 @@ public sealed record GameInfo(
     string? ScenePath,
     RankOrder Order,
     string ValueHeader,
-    IReadOnlyList<GameVariant>? VariantList = null)
+    IReadOnlyList<GameVariant>? VariantList = null,
+    string? Short = null)
 {
+    /// <summary>One-word name for the records tabs ("숫자 합치기" → "합치기", so it differs from the quiz's "숫자").</summary>
+    public string TabName => Short ?? Title.Split(' ')[0];
+
     public IReadOnlyList<GameVariant> Variants => VariantList ?? Array.Empty<GameVariant>();
     public bool HasVariants => Variants.Count > 0;
 
@@ -37,6 +41,17 @@ public sealed record GameInfo(
     {
         "balloon" => $"{e.Score}개",
         "fruit" => $"{e.Score}개",
+        "snake" => $"잎 {e.Score}개",
+        "flappy" => $"{e.Score}개",
+        "breakout" => $"벽돌 {e.Score}개",
+        "match3" => $"과일 {e.Score}개",
+        "swipe" => $"벽돌 {e.Score}개",
+        "bubble" => BubbleRules.FormatRecord(e.TimeMs, e.Score),
+        "blocks" => $"줄 {e.Score}개",
+        "sudoku" => SudokuRules.FormatRecord(e.TimeMs),
+        "shikaku" => ShikakuRules.FormatRecord(e.TimeMs),
+        "pushbox" => PushBoxRules.FormatRecord(e.TimeMs, e.Score),
+        "flight" => FlightRules.FormatRecord(e.Score),
         "memory" => MemoryRules.FormatRecord(e.TimeMs, e.Score),
         "maze" => MazeRules.FormatRecord(e.Score, e.TimeMs),
         "quiz" => $"{e.Score}문제 · {FormatTime(e.TimeMs)}",
@@ -63,6 +78,30 @@ public static class GameCatalog
             "res://scenes/games/Quiz.tscn", RankOrder.ScoreDescTimeAsc, "맞힌 문제", QuizRules.Variants),
         new GameInfo("dino", "공룡 점프", "res://assets/sprites/dino/dino_run.png",
             "res://scenes/games/Dino.tscn", RankOrder.ScoreDesc, "점수"),
+        new GameInfo("merge", "숫자 합치기", "res://assets/sprites/menu/merge.png",
+            "res://scenes/games/Merge.tscn", RankOrder.ScoreDesc, "점수", MergeRules.Variants, "합치기"),
+        new GameInfo("snake", "애벌레 냠냠", "res://assets/sprites/menu/snake.png",
+            "res://scenes/games/Snake.tscn", RankOrder.ScoreDesc, "먹은 잎"),
+        new GameInfo("flappy", "아기새 날기", "res://assets/sprites/menu/flappy.png",
+            "res://scenes/games/Flappy.tscn", RankOrder.ScoreDesc, "지나간 기둥", FlappyRules.Variants),
+        new GameInfo("breakout", "벽돌깨기", "res://assets/sprites/menu/breakout.png",
+            "res://scenes/games/Breakout.tscn", RankOrder.ScoreDesc, "깬 벽돌"),
+        new GameInfo("match3", "과일 맞추기", "res://assets/sprites/menu/match3.png",
+            "res://scenes/games/Match3.tscn", RankOrder.ScoreDesc, "모은 과일", Match3Rules.Variants, "맞추기"),
+        new GameInfo("swipe", "공 쏘기 벽돌깨기", "res://assets/sprites/menu/swipe_brick.png",
+            "res://scenes/games/SwipeBrick.tscn", RankOrder.ScoreDesc, "깬 벽돌", SwipeBrickRules.Variants, "공 쏘기"),
+        new GameInfo("bubble", "방울 쏘기", "res://assets/sprites/menu/bubble.png",
+            "res://scenes/games/Bubble.tscn", RankOrder.TimeAscScoreAsc, "걸린 시간 · 쏜 방울", BubbleRules.Variants),
+        new GameInfo("blocks", "블록 쌓기", "res://assets/sprites/menu/blocks.png",
+            "res://scenes/games/Blocks.tscn", RankOrder.ScoreDesc, "지운 줄", BlocksRules.Variants),
+        new GameInfo("sudoku", "그림 스도쿠", "res://assets/sprites/menu/picture_sudoku.png",
+            "res://scenes/games/Sudoku.tscn", RankOrder.TimeAsc, "걸린 시간", SudokuRules.Variants, "스도쿠"),
+        new GameInfo("shikaku", "네모 나누기", "res://assets/sprites/menu/shikaku.png",
+            "res://scenes/games/Shikaku.tscn", RankOrder.TimeAsc, "걸린 시간", ShikakuRules.Variants, "네모"),
+        new GameInfo("pushbox", "상자 밀기", "res://assets/sprites/menu/push_box.png",
+            "res://scenes/games/PushBox.tscn", RankOrder.TimeAscScoreAsc, "걸린 시간 · 걸음", PushBoxRules.Variants, "상자"),
+        new GameInfo("flight", "하늘 비행 모험", "res://assets/sprites/menu/sky_flight.png",
+            "res://scenes/games/Flight.tscn", RankOrder.ScoreDesc, "모은 별", FlightRules.Variants, "비행"),
     };
 
     public static GameInfo? Find(string id) => All.FirstOrDefault(g => g.Id == id);

@@ -13,6 +13,22 @@
 | 4 | 미로 탈출 | [games/04-maze-escape.md](games/04-maze-escape.md) | `maze` | 구현 |
 | 5 | 숫자 / 색깔 퀴즈 | [games/05-number-color-quiz.md](games/05-number-color-quiz.md) | `quiz` | 구현 |
 | 6 | 공룡 점프 | [games/06-dino-jump.md](games/06-dino-jump.md) | `dino` | 구현 |
+| 7 | 숫자 합치기 | [games/07-merge.md](games/07-merge.md) | `merge` | 구현 |
+| 8 | 애벌레 냠냠 | [games/08-snake.md](games/08-snake.md) | `snake` | 구현 |
+| 9 | 아기새 날기 | [games/09-flappy.md](games/09-flappy.md) | `flappy` | 구현 |
+| 10 | 벽돌깨기 | [games/10-breakout.md](games/10-breakout.md) | `breakout` | 구현 |
+| 11 | 과일 맞추기 | [games/11-match3.md](games/11-match3.md) | `match3` | 구현 |
+| 12 | 공 쏘기 벽돌깨기 | [games/12-swipe-brick.md](games/12-swipe-brick.md) | `swipe` | 구현 |
+| 13 | 방울 쏘기 | [games/13-bubble.md](games/13-bubble.md) | `bubble` | 구현 |
+| 14 | 블록 쌓기 | [games/14-blocks.md](games/14-blocks.md) | `blocks` | 구현 |
+| 15 | 그림 스도쿠 | [games/15-picture-sudoku.md](games/15-picture-sudoku.md) | `sudoku` | 구현 |
+| 16 | 네모 나누기 | [games/16-shikaku.md](games/16-shikaku.md) | `shikaku` | 구현 |
+| 17 | 상자 밀기 | [games/17-push-box.md](games/17-push-box.md) | `pushbox` | 구현 |
+| 18 | 하늘 비행 모험 | [games/18-sky-flight.md](games/18-sky-flight.md) | `flight` | 구현 |
+
+7~18번은 외부 확장 기획서(`Daoni_MiniGame_확장기획서.md`, 원본 참고용)의 게임 방식을 우리 프로젝트 구조와 아이용 원칙(감점·실패 연출·붉은 경고 없음, 게임오버 대신 "끝!")에 맞춰 다시 쓴 것이다. 리소스 파일 이름은 `Daoni_ChatGPT_리소스요청프롬프트.md`를 따른다.
+
+**후보**(기획서 없음, 원본의 추가 추천 게임): 지뢰찾기, 미로 추격, 과일 슬라이스, Pong, SameGame.
 
 ## 확정된 공통 사항
 
@@ -95,6 +111,23 @@ AI를 이용해 구현할 경우 6개 게임을 한 번에 만들기보다 하�
 - 최고 기록
 
 이 기반을 만든 뒤 다른 미니게임을 추가하면 개발 속도를 크게 높일 수 있다.
+
+### 새 게임(7~18번) 구현 순서
+
+원본 확장 기획서의 권장 순서를 따른다. 앞 게임에서 만든 것을 뒤 게임이 다시 쓰도록 짠 순서다.
+
+1. **숫자 합치기**: 격자 판, 스와이프 입력, 되돌리기
+2. **애벌레 냠냠**: 격자 이동, 방향 입력(미로 탈출 버튼 재사용)
+3. **아기새 날기**: 한 버튼 물리(공룡 점프 구조 재사용)
+4. **벽돌깨기**: 공 반사·충돌, 가운데 세로 판 + 양옆 패널 배치
+5. **과일 맞추기**: 매치 판정, 떨어뜨리기·연쇄
+6. **공 쏘기 벽돌깨기**: 조준선, 공 여러 개(벽돌깨기 그림·충돌 재사용)
+7. **방울 쏘기**: 어긋난 격자, 조준선 재사용
+8. **블록 쌓기**: 낙하 블록, 터치 조작 버튼
+9. **그림 스도쿠**: 문제 생성기(답 하나뿐 검사), 힌트·메모
+10. **네모 나누기**: 끌어서 네모 그리기, 문제 생성기
+11. **상자 밀기**: 미로 탈출 판·방향 입력 재사용, 되돌리기
+12. **하늘 비행 모험**: 등장 표, 방울 패턴, 대장(가장 큼)
 
 
 ## AI 구현 시 권장 방식

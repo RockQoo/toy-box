@@ -25,16 +25,26 @@ public partial class MainMenu : Control
         _title.HorizontalAlignment = HorizontalAlignment.Center;
         root.AddChild(_title);
 
-        var grid = new GridContainer { Columns = 3 };
-        grid.AddThemeConstantOverride("h_separation", 24);
-        grid.AddThemeConstantOverride("v_separation", 22);
-        var gridCenter = new CenterContainer();
-        gridCenter.AddChild(grid);
-        root.AddChild(gridCenter);
+        // Cards in pages of 6 (3 x 2) with arrows on both sides and a dot per page under them
+        _pageCount = Mathf.Max(1, (GameCatalog.All.Count + PerPage - 1) / PerPage);
+        _page = Mathf.Clamp(_page, 0, _pageCount - 1);
+        var pager = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        pager.AddThemeConstantOverride("separation", 18);
+        _prev = PageArrow("res://assets/sprites/ui/btn_left.png", -1);
+        pager.AddChild(_prev);
+        _grid = new GridContainer { Columns = 3 };
+        _grid.AddThemeConstantOverride("h_separation", 24);
+        _grid.AddThemeConstantOverride("v_separation", 22);
+        pager.AddChild(_grid);
+        _next = PageArrow("res://assets/sprites/ui/btn_right.png", 1);
+        pager.AddChild(_next);
+        root.AddChild(pager);
 
-        var cards = GameCatalog.All.Select(GameCard).ToList();
-        foreach (var card in cards)
-            grid.AddChild(card);
+        _dots = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center, Visible = _pageCount > 1 };
+        _dots.AddThemeConstantOverride("separation", 12);
+        root.AddChild(_dots);
+
+        var cards = FillPage();
 
         var bottom = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
         bottom.AddThemeConstantOverride("separation", 20);
@@ -68,6 +78,82 @@ public partial class MainMenu : Control
         Ui.PopIn(_title, 0f, 0.5f);
         for (var i = 0; i < cards.Count; i++)
             Ui.PopIn(cards[i], 0.12f + i * 0.06f);
+    }
+
+    // ---- Pages ----
+
+    private const int PerPage = 6;
+
+    /// <summary>Kept across menu visits, so coming back from a game on page 2 shows page 2.</summary>
+    private static int _page;
+
+    private int _pageCount;
+    private GridContainer _grid = null!;
+    private HBoxContainer _dots = null!;
+    private TextureButton _prev = null!, _next = null!;
+
+    private TextureButton PageArrow(string texture, int step)
+    {
+        var arrow = new TextureButton
+        {
+            TextureNormal = Ui.Tex(texture),
+            IgnoreTextureSize = true,
+            StretchMode = TextureButton.StretchModeEnum.KeepAspectCentered,
+            CustomMinimumSize = new Vector2(84, 84),
+            SizeFlagsVertical = SizeFlags.ShrinkCenter,
+            FocusMode = FocusModeEnum.None,
+        };
+        Ui.MakeSquishy(arrow);
+        arrow.Pressed += () => TurnPage(step);
+        return arrow;
+    }
+
+    /// <summary>Puts the current page's cards in the grid and updates the arrows and dots. Returns the new cards.</summary>
+    private System.Collections.Generic.List<Control> FillPage()
+    {
+        foreach (var child in _grid.GetChildren())
+            child.QueueFree();
+        var cards = GameCatalog.All.Skip(_page * PerPage).Take(PerPage).Select(GameCard).ToList();
+        foreach (var card in cards)
+            _grid.AddChild(card);
+        // Hidden arrows keep their space so the grid does not shift between pages
+        _prev.Modulate = _page > 0 ? Colors.White : Colors.Transparent;
+        _prev.Disabled = _page == 0;
+        _next.Modulate = _page < _pageCount - 1 ? Colors.White : Colors.Transparent;
+        _next.Disabled = _page >= _pageCount - 1;
+        foreach (var child in _dots.GetChildren())
+            child.QueueFree();
+        for (var i = 0; i < _pageCount; i++)
+        {
+            var dot = new Panel { CustomMinimumSize = new Vector2(22, 22), MouseFilter = MouseFilterEnum.Ignore };
+            dot.AddThemeStyleboxOverride("panel",
+                UiTheme.Box(i == _page ? UiTheme.Orange : Colors.White, UiTheme.Ink, 3, 0, 11));
+            _dots.AddChild(dot);
+        }
+        return cards;
+    }
+
+    private void TurnPage(int step)
+    {
+        var page = Mathf.Clamp(_page + step, 0, _pageCount - 1);
+        if (page == _page)
+            return;
+        _page = page;
+        Audio.I.Whoosh();
+        var cards = FillPage();
+        for (var i = 0; i < cards.Count; i++)
+            Ui.PopIn(cards[i], i * 0.04f, 0.28f);
+    }
+
+    public override void _UnhandledInput(InputEvent e)
+    {
+        if (e is InputEventKey { Pressed: true, Echo: false } key && _popupLayer.GetChildCount() == 0)
+        {
+            if (key.PhysicalKeycode is Key.Right or Key.D)
+                TurnPage(1);
+            else if (key.PhysicalKeycode is Key.Left or Key.A)
+                TurnPage(-1);
+        }
     }
 
     public override void _Process(double delta)
@@ -196,9 +282,26 @@ public partial class MainMenu : Control
         var side = new VBoxContainer();
         side.AddThemeConstantOverride("separation", 12);
         columns.AddChild(side);
-        var tabs = ChoiceRow.Create("", GameCatalog.All.Select(g => new Choice(g.Title.Split(' ')[0], g.IconPath)).ToList(),
-            Mathf.Max(0, GameCatalog.All.ToList().FindIndex(g => g.Id == startGameId)), 180, vertical: true);
-        side.AddChild(tabs);
+        var tabs = ChoiceRow.Create("", GameCatalog.All.Select(g => new Choice(g.TabName, g.IconPath)).ToList(),
+            Mathf.Max(0, GameCatalog.All.ToList().FindIndex(g => g.Id == startGameId)), 180, vertical: true, chipHeight: 72);
+        // More games than fit: the tabs scroll (drag or wheel) above the close button
+        var tabScroll = new ScrollContainer
+        {
+            CustomMinimumSize = new Vector2(200, 430),
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            FollowFocus = true,
+        };
+        tabScroll.AddChild(tabs);
+        side.AddChild(tabScroll);
+        // Bring the starting tab into view once the chips have their sizes (a game past the first few)
+        var startTab = tabs.SelectedIndex;
+        GetTree().ProcessFrame += ScrollToStart;
+        void ScrollToStart()
+        {
+            GetTree().ProcessFrame -= ScrollToStart;
+            if (IsInstanceValid(tabScroll) && tabs.GetChildCount() > 0)
+                tabScroll.ScrollVertical = (int)(tabs.Size.Y * startTab / GameCatalog.All.Count);
+        }
         side.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
         var close = CloseButton(popup);
         close.CustomMinimumSize = new Vector2(180, 64);
