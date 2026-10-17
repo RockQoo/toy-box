@@ -4,4 +4,4 @@
 bin/
 obj/
 *.user
-export_presets.cfg
+build/

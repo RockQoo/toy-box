@@ -29,7 +29,11 @@ Godot_v4.7.2-stable_mono_win64_console.exe --headless --path . --import     # �
 Godot_v4.7.2-stable_mono_win64_console.exe --headless --path . --quit-after 600 -- --game=balloon --autoplay   # 런타임 오류 스모크 테스트 (과일: --game=fruit, 퀴즈·짝 맞추기·미로·공룡: --game=quiz|memory|maze|dino --quit-after 8000)
 # 화면 확인: 프레임을 PNG로 저장(.wav도 함께 저장됨). 출력 경로는 프로젝트 밖(스크래치)으로
 Godot_v4.7.2-stable_mono_win64_console.exe --path . --write-movie <dir>/f.png --fixed-fps 10 --quit-after 400 -- --game=balloon --autoplay
+# 릴리즈 빌드(Windows): build/windows/ToyBox.exe (+ data_ToyBox_windows_x86_64 폴더, 함께 배포). build/는 git 제외
+Godot_v4.7.2-stable_mono_win64_console.exe --headless --path . --export-release "Windows Desktop" build/windows/ToyBox.exe
 ```
+
+사용자에게 게임을 보여 줄 때는 에디터 실행(`--path .`)이 아니라 릴리즈 빌드를 새로 내보내서 `build/windows/ToyBox.exe`로 실행한다. 내보내기 설정은 `export_presets.cfg`(커밋됨, 비밀 정보 없음), 템플릿은 `%APPDATA%/Godot/export_templates/4.7.2.stable.mono`에 설치되어 있다. 릴리즈도 같은 `user://`(아래 기록 파일)를 쓴다.
 
 개발용 인자(`--` 뒤): `--game=<id>`(메뉴를 건너뛰고 바로 그 게임), `--autoplay`(게임이 스스로 플레이하고 이름 입력도 자동, 카운트다운 단축), `--open=records` / `--open=records:<게임 id>` / `--open=settings`(메인 메뉴에서 팝업을 연 채 시작. `records:quiz`는 퀴즈 탭).
 자동 플레이로 랭킹과 최근 이름이 쌓인다(`%APPDATA%/Godot/app_userdata/Toy Box/records.json`, `settings.cfg`). **이 파일에는 가족이 실제로 플레이한 기록이 들어 있으므로 지우지 말고**, 테스트 전에 복사해 두었다가 끝나면 되돌린다.
