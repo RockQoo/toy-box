@@ -12,7 +12,7 @@
 | 3 | 동물 짝 맞추기 | [games/03-animal-match.md](games/03-animal-match.md) | `memory` | 구현 |
 | 4 | 미로 탈출 | [games/04-maze-escape.md](games/04-maze-escape.md) | `maze` | 구현 |
 | 5 | 숫자 / 색깔 퀴즈 | [games/05-number-color-quiz.md](games/05-number-color-quiz.md) | `quiz` | 구현 |
-| 6 | 공룡 점프 | [games/06-dino-jump.md](games/06-dino-jump.md) | `dino` | 준비 중 |
+| 6 | 공룡 점프 | [games/06-dino-jump.md](games/06-dino-jump.md) | `dino` | 구현 |
 
 ## 확정된 공통 사항
 

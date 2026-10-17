@@ -62,7 +62,7 @@ public static class GameCatalog
         new GameInfo("quiz", "숫자 / 색깔 퀴즈", "res://assets/sprites/quiz/num_3.png",
             "res://scenes/games/Quiz.tscn", RankOrder.ScoreDescTimeAsc, "맞힌 문제", QuizRules.Variants),
         new GameInfo("dino", "공룡 점프", "res://assets/sprites/dino/dino_run.png",
-            null, RankOrder.ScoreDesc, "점수"),
+            "res://scenes/games/Dino.tscn", RankOrder.ScoreDesc, "점수"),
     };
 
     public static GameInfo? Find(string id) => All.FirstOrDefault(g => g.Id == id);

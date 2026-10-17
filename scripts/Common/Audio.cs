@@ -34,6 +34,7 @@ public partial class Audio : Node
     private AudioStreamWav _ding = null!, _chime = null!, _retry = null!;
     private AudioStreamWav _flip = null!, _match = null!;
     private AudioStreamWav _step = null!, _wallBump = null!, _starPickup = null!;
+    private AudioStreamWav _jump = null!, _passTick = null!, _tumble = null!;
     private AudioStreamWav _menuSong = null!, _playSong = null!;
 
     public float BgmVolume
@@ -87,6 +88,9 @@ public partial class Audio : Node
         _step = ToStream(SfxSynth.Step());
         _wallBump = ToStream(SfxSynth.WallBump());
         _starPickup = ToStream(SfxSynth.StarPickup());
+        _jump = ToStream(SfxSynth.Jump());
+        _passTick = ToStream(SfxSynth.PassTick());
+        _tumble = ToStream(SfxSynth.Tumble());
         _menuSong = ToStream(SfxSynth.MenuSong(), loop: true);
         _playSong = ToStream(SfxSynth.PlaySong(), loop: true);
     }
@@ -117,6 +121,12 @@ public partial class Audio : Node
     public void WallBump() => Play(_wallBump, Jitter(0.05f), -5f);
     /// <summary>Maze: a star picked up. Climbs with each star of the maze.</summary>
     public void StarPickup(int stars) => Play(_starPickup, SfxSynth.StreakPitch(stars), -2f);
+    /// <summary>Dino: a jump ("보잉"). Light and a little varied, it is heard on every jump.</summary>
+    public void Jump() => Play(_jump, Jitter(0.04f), -6f);
+    /// <summary>Dino: an obstacle passed. <paramref name="step"/> climbs the scale within each ten points.</summary>
+    public void PassTick(int step) => Play(_passTick, SfxSynth.StreakPitch(step), -4f);
+    /// <summary>Dino: bumped into an obstacle. A soft cartoon tumble, not a failure buzzer.</summary>
+    public void Tumble() => Play(_tumble, 1f, -3f);
     public void Click() => Play(_click, Jitter(0.04f), -4f);
     public void Bonk() => Play(_bonk, 1f, -2f);
     public void Tick(float pitch = 1f) => Play(_tick, pitch, -4f);

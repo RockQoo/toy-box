@@ -35,6 +35,9 @@ public partial class Scenery : Node2D
     private Texture2D _park = null!;
     private float _time;
 
+    /// <summary>Cloud drift in pixels per second (sky, park). Negative drifts left, e.g. as a far parallax layer in 공룡 점프.</summary>
+    public float CloudDrift { get; set; } = 14f;
+
     public SceneryKind Kind
     {
         get => _kind;
@@ -91,9 +94,11 @@ public partial class Scenery : Node2D
             {
                 case SceneryKind.Sky:
                 case SceneryKind.Park:
-                    f.Position.X += f.Speed * 14f * dt;
+                    f.Position.X += f.Speed * CloudDrift * dt;
                     if (f.Position.X > size.X + 150)
                         f.Position.X = -150;
+                    else if (f.Position.X < -150)
+                        f.Position.X = size.X + 150;
                     break;
                 case SceneryKind.Sea:
                     f.Position.Y -= f.Speed * 45f * dt;

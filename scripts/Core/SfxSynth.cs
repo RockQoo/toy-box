@@ -109,6 +109,25 @@ public static class SfxSynth
     /// <summary>Maze: a star picked up. A quick sparkling bell run up to a high note ("반짝!").</summary>
     public static float[] StarPickup() => Bell(new[] { 1046.5f, 1318.5f, 1568f, 2093f }, 0.055f, 0.5f, 0.32f);
 
+    /// <summary>Dino jump: a light, springy "보잉" (a quick upward slide with a little wobble). Heard on every jump.</summary>
+    public static float[] Jump() =>
+        Render(0.16f, u => ExpSweep(MathF.Min(u / 0.5f, 1f), 280, 640) * (1f + 0.05f * MathF.Sin(u * 38f)), Wave.Sine,
+            noiseMix: 0f, decay: 3.5f, gain: 0.45f);
+
+    /// <summary>Dino: an obstacle passed. A short, bright "띵" (pitch is raised by the caller within each ten).</summary>
+    public static float[] PassTick() => Bell(new[] { 1174.7f }, 0.05f, 0.16f, 0.32f);
+
+    /// <summary>
+    /// Dino crash: a soft, wobbly slide down ("뿌우웅") ending in a round little thump. Cartoon-like, not an error sound.
+    /// </summary>
+    public static float[] Tumble() =>
+        Concat(new List<float[]>
+        {
+            Render(0.42f, u => ExpSweep(u, 620, 210) * (1f + 0.07f * MathF.Sin(u * 55f)), Wave.Sine,
+                noiseMix: 0f, decay: 1.6f, gain: 0.42f),
+            Render(0.12f, u => ExpSweep(u, 200, 130), Wave.Sine, noiseMix: 0.08f, decay: 6f, gain: 0.5f, clickTime: 0.004f),
+        });
+
     /// <summary>Result count-up step: a tiny tick (pitch is raised by the caller as the number grows).</summary>
     public static float[] CountStep() =>
         Render(0.04f, _ => 1200, Wave.Sine, noiseMix: 0f, decay: 6f, gain: 0.35f);

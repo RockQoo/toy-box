@@ -2,7 +2,7 @@ using System;
 
 namespace ToyBox.Core;
 
-/// <summary>The "속도" option on the customization screens (balloon, fruit). Stored in settings as its int value.</summary>
+/// <summary>The "속도" option on the customization screens (balloon, fruit, dino). Stored in settings as its int value.</summary>
 public enum StartSpeed { Slow, Normal, Fast }
 
 /// <summary>Rules shared by the timed games: start-speed scaling and the HUD's whole seconds.</summary>
